@@ -17,8 +17,6 @@ class AssetController
                 return $this->getTableColumns($input);
             case 'get_excel_columns':
                 return $this->getExcelColumns($input);
-            case 'process_mapping':
-                return $this->processMapping($input);
             default:
                 http_response_code(400);
                 return [
@@ -40,14 +38,4 @@ class AssetController
         return $this->model->getExcelColumns($rawMapping);
     }
 
-    private function processMapping($input)
-    {
-        $assetTableName = $input['asset_table_name'] ?? 'app_fd_inv_pavement';
-        $importBatchNo = $input['import_batch_no'] ?? null;
-        $dataId = $input['data_id'] ?? null;
-        $bimMapping = isset($input['bim_mapping']) ? json_decode($input['bim_mapping'], true) : [];
-        $rawMapping = isset($input['rawfile_mapping']) ? json_decode($input['rawfile_mapping'], true) : [];
-
-        return $this->model->processMapping($assetTableName, $importBatchNo, $dataId, $bimMapping, $rawMapping);
-    }
 }
