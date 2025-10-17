@@ -43,17 +43,52 @@ class AssetModel
     {
         if (!$this->tableExists($table)) {
             http_response_code(404);
-            return ["status" => "error", "message" => "Table '$table' does not exist."];
+            return [
+                "status" => "error",
+                "message" => "Table '$table' does not exist."
+            ];
         }
 
         $cols = [];
         $res = $this->conn->query("SHOW COLUMNS FROM $table");
-        while ($row = $res->fetch_assoc()) {
-            $cols[] = $row["Field"];
+
+        if (!$res) {
+            http_response_code(500);
+            return [
+                "status" => "error",
+                "message" => "Failed to fetch columns: " . $this->conn->error
+            ];
         }
 
-        return ["status" => "success", "columns" => $cols];
+        // Columns to exclude
+        $excluded = [
+            'id',
+            'dateCreated',
+            'dateModified',
+            'createdBy',
+            'createdByName',
+            'modifiedBy',
+            'modifiedByName'
+        ];
+
+        while ($row = $res->fetch_assoc()) {
+            $column = $row['Field'];
+
+            // Only include if not in excluded list
+            if (!in_array($column, $excluded, true)) {
+                $cols[] = $column;
+            }
+        }
+
+        return [
+            "status" => "success",
+            "message" => "Columns retrieved successfully (excluding system fields).",
+            "table" => $table,
+            "columns" => $cols,
+            "excluded" => $excluded
+        ];
     }
+
 
     public function getExcelColumns($rawMapping)
     {
