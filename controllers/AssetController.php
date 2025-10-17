@@ -13,6 +13,8 @@ class AssetController
     public function handleRequest($mode, $input)
     {
         switch ($mode) {
+            case 'get_all_tables':
+                return $this->getAllTables();
             case 'get_table_columns':
                 return $this->getTableColumns($input);
             case 'get_excel_columns':
@@ -24,6 +26,11 @@ class AssetController
                     "message" => "Invalid mode: $mode"
                 ];
         }
+    }
+
+    private function getAllTables()
+    {
+        return $this->model->getAllTables();
     }
 
     private function getTableColumns($input)

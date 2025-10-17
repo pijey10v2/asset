@@ -35,11 +35,38 @@ set_error_handler(function ($errno, $errstr, $errfile, $errline) {
 require_once __DIR__ . '/controllers/AssetController.php';
 require_once __DIR__ . '/models/AssetModel.php';
 
-// Parse Input
-$input = json_decode(file_get_contents("php://input"), true);
-if (!$input) $input = $_POST;
+// Parse Input & Route Mode
+$method = $_SERVER['REQUEST_METHOD'];
+$input = [];
 
-$mode = $input['mode'] ?? ''; //default is none
+// GET Request -> query string (e.g., ?mode=get_all_tables)
+if ($method === 'GET') {
+    $mode = $_GET['mode'] ?? null;
+    $input = $_GET;
+}
+// POST Request -> JSON or form-data
+elseif ($method === 'POST') {
+    $input = json_decode(file_get_contents("php://input"), true);
+    if (!$input) $input = $_POST;
+    $mode = $input['mode'] ?? null;
+}
+else {
+    http_response_code(405);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Method not allowed: $method. Only GET and POST are supported."
+    ]);
+    exit;
+}
+
+if (!$mode) {
+    http_response_code(400);
+    echo json_encode([
+        "status" => "error",
+        "message" => "Missing required parameter: mode"
+    ]);
+    exit;
+}
 
 // Dispatch Controller
 $controller = new AssetController();

@@ -29,6 +29,16 @@ class AssetModel
         return ($check && $check->num_rows > 0);
     }
 
+    public function getAllTables(){
+        $sql = "SHOW TABLES LIKE 'app_fd_inv_%'";
+        $result = $this->conn->query($sql);
+        $tables = [];
+        while ($row = $result->fetch_assoc()) {
+            $tables[] = $row["Tables_in_jwdb (app_fd_inv_%)"];
+        }
+        return ["status" => "success", "tables" => $tables];
+    }
+
     public function getTableColumns($table)
     {
         if (!$this->tableExists($table)) {
