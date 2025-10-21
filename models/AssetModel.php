@@ -103,9 +103,7 @@ class AssetModel
 
     public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData)
     {
-
-        var_dump($rowData);
-
+    
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
@@ -115,6 +113,12 @@ class AssetModel
             ]);
             exit;
         }
+
+        // If $rowData is array-of-rows, get the first one
+        if (isset($rowData[0]) && is_array($rowData[0])) {
+            $rowData = $rowData[0];
+        }
+        var_dump($rowData);
 
         // Add import metadata fields (for tracking)
         $rowData["c_import_batch"] = $importBatchNo;
