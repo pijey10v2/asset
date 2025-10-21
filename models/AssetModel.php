@@ -105,7 +105,7 @@ class AssetModel
     {
 
         // Verify that table exists
-        if (!$this->model->tableExists($assetTable)) {
+        if (!$this->tableExists($assetTable)) {
             http_response_code(404);
             echo json_encode([
                 "status" => "error",
