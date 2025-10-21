@@ -123,26 +123,26 @@ class AssetModel
         $values = [];
 
         foreach ($rowData as $col => $val) {
-            $columns[] = "`" . $conn->real_escape_string($col) . "`";
-            $values[] = "'" . $conn->real_escape_string($val) . "'";
+            $columns[] = "`" . $this->conn->real_escape_string($col) . "`";
+            $values[] = "'" . $this->conn->real_escape_string($val) . "'";
         }
 
         $sql = "INSERT INTO `$assetTable` (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $values) . ")";
 
         try {
-            if ($conn->query($sql)) {
+            if ($this->conn->query($sql)) {
                 echo json_encode([
                     "status" => "success",
                     "message" => "Row inserted successfully.",
                     "table" => $assetTable,
-                    "insert_id" => $conn->insert_id,
+                    "insert_id" => $this->conn->insert_id,
                     "data" => $rowData
                 ], JSON_PRETTY_PRINT);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     "status" => "error",
-                    "message" => "Insert failed: " . $conn->error,
+                    "message" => "Insert failed: " . $this->conn->error,
                     "sql" => $sql
                 ], JSON_PRETTY_PRINT);
             }
