@@ -118,22 +118,29 @@ class AssetModel
         if (isset($rowData[0]) && is_array($rowData[0])) {
             $rowData = $rowData[0];
         }
-        var_dump($rowData);
+        //var_dump($rowData);
 
         // Add import metadata fields (for tracking)
         $rowData["c_import_batch"] = $importBatchNo;
         $rowData["c_data_id"] = $dataId;
 
-        // Build Insert SQL dynamically
-        $columns = [];
-        $values = [];
-
+        // Auto-create missing columns
         foreach ($rowData as $col => $val) {
-            $columns[] = "`" . $this->conn->real_escape_string($col) . "`";
-            $values[] = "'" . $this->conn->real_escape_string($val) . "'";
+            $exists = $this->conn->query("SHOW COLUMNS FROM `$assetTable` LIKE '$col'");
+            if (!$exists || $exists->num_rows === 0) {
+                $this->conn->query("ALTER TABLE `$assetTable` ADD COLUMN `$col` VARCHAR(255) NULL");
+            }
         }
 
-        $sql = "INSERT INTO `$assetTable` (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $values) . ")";
+        // Build Insert SQL dynamically
+        $cols = [];
+        $vals = [];
+        foreach ($rowData as $col => $val) {
+            $cols[] = "`$col`";
+            $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
+        }
+
+        $sql = "INSERT INTO `$assetTable` (" . implode(",", $cols) . ") VALUES (" . implode(",", $vals) . ")";
 
         try {
             if ($this->conn->query($sql)) {
