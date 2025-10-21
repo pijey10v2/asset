@@ -104,6 +104,8 @@ class AssetModel
     public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData)
     {
 
+        var_dump($rowData);
+
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
