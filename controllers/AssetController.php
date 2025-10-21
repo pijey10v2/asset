@@ -19,6 +19,8 @@ class AssetController
                 return $this->getTableColumns($input);
             case 'get_excel_columns':
                 return $this->getExcelColumns($input);
+            case 'insert_asset_data':
+                return $this->insertAssetData($input);
             default:
                 http_response_code(400);
                 return [
@@ -43,6 +45,33 @@ class AssetController
     {
         $rawMapping = isset($input['rawfile_mapping']) ? json_decode($input['rawfile_mapping'], true) : [];
         return $this->model->getExcelColumns($rawMapping);
+    }
+
+    private function insertAssetData($input)
+    {
+        $assetTable = $input["asset_table_name"] ?? null;
+        $importBatchNo = $input["import_batch_no"] ?? null;
+        $dataId = $input["data_id"] ?? null;
+        $rowDataJson = $input["row_data"] ?? null;
+
+        if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowDataJson)) {
+            http_response_code(400);
+            return [
+                "status" => "error",
+                "message" => "Invalid input"
+            ];
+        }
+
+        $rowData = json_decode($rowDataJson, true);
+        if (empty($rowData)) {
+            http_response_code(400);
+            return [
+                "status" => "error",
+                "message" => "Invalid row data"
+            ];
+        }
+
+        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData);
     }
 
 }

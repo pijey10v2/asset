@@ -100,4 +100,61 @@ class AssetModel
         $first = $rawMapping[0] ?? [];
         return ["status" => "success", "columns" => array_keys($first)];
     }
+
+    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData)
+    {
+
+        // Verify that table exists
+        if (!$this->model->tableExists($assetTable)) {
+            http_response_code(404);
+            echo json_encode([
+                "status" => "error",
+                "message" => "Target table '$assetTable' does not exist."
+            ]);
+            exit;
+        }
+
+        // Add import metadata fields (for tracking)
+        $rowData["c_import_batch"] = $importBatchNo;
+        $rowData["c_data_id"] = $dataId;
+
+        // Build Insert SQL dynamically
+        $columns = [];
+        $values = [];
+
+        foreach ($rowData as $col => $val) {
+            $columns[] = "`" . $conn->real_escape_string($col) . "`";
+            $values[] = "'" . $conn->real_escape_string($val) . "'";
+        }
+
+        $sql = "INSERT INTO `$assetTable` (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $values) . ")";
+
+        try {
+            if ($conn->query($sql)) {
+                echo json_encode([
+                    "status" => "success",
+                    "message" => "Row inserted successfully.",
+                    "table" => $assetTable,
+                    "insert_id" => $conn->insert_id,
+                    "data" => $rowData
+                ], JSON_PRETTY_PRINT);
+            } else {
+                http_response_code(500);
+                echo json_encode([
+                    "status" => "error",
+                    "message" => "Insert failed: " . $conn->error,
+                    "sql" => $sql
+                ], JSON_PRETTY_PRINT);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                "message" => "Database exception: " . $e->getMessage()
+            ]);
+        }
+
+        exit;
+
+    }
 }
