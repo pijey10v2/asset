@@ -69,7 +69,7 @@ class AssetModel
             'createdByName',
             'modifiedBy',
             'modifiedByName',
-            'c_model_element',
+            //'c_model_element',
         ];
 
         while ($row = $res->fetch_assoc()) {
@@ -145,7 +145,7 @@ class AssetModel
         $checkRes = $this->conn->query($checkSql);
         $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0;
 
-        if ($exists) {
+        if ($exists) { // Record already exists
             echo json_encode([
                 "status" => "duplicate",
                 "message" => "Record already exists. Skipping insert.",
@@ -155,44 +155,44 @@ class AssetModel
                 ]
             ], JSON_PRETTY_PRINT);
             exit;
-        }
+        }else{ // Record does not exist, insert it
+            // Build Insert SQL dynamically
+            $cols = [];
+            $vals = [];
+            foreach ($rowData as $col => $val) {
+                $cols[] = "`$col`";
+                $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
+            }
 
-        // Build Insert SQL dynamically
-        $cols = [];
-        $vals = [];
-        foreach ($rowData as $col => $val) {
-            $cols[] = "`$col`";
-            $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
-        }
+            $sql = "INSERT INTO `$assetTable` (" . implode(",", $cols) . ") VALUES (" . implode(",", $vals) . ")";
 
-        $sql = "INSERT INTO `$assetTable` (" . implode(",", $cols) . ") VALUES (" . implode(",", $vals) . ")";
-
-        try {
-            if ($this->conn->query($sql)) {
-                echo json_encode([
-                    "status" => "success",
-                    "message" => "Row inserted successfully.",
-                    "table" => $assetTable,
-                    "insert_id" => $this->conn->insert_id,
-                    "data" => $rowData
-                ], JSON_PRETTY_PRINT);
-            } else {
+            try {
+                if ($this->conn->query($sql)) {
+                    echo json_encode([
+                        "status" => "success",
+                        "message" => "Row inserted successfully.",
+                        "table" => $assetTable,
+                        "insert_id" => $this->conn->insert_id,
+                        "data" => $rowData
+                    ], JSON_PRETTY_PRINT);
+                } else {
+                    http_response_code(500);
+                    echo json_encode([
+                        "status" => "error",
+                        "message" => "Insert failed: " . $this->conn->error,
+                        "sql" => $sql
+                    ], JSON_PRETTY_PRINT);
+                }
+            } catch (Exception $e) {
                 http_response_code(500);
                 echo json_encode([
                     "status" => "error",
-                    "message" => "Insert failed: " . $this->conn->error,
-                    "sql" => $sql
-                ], JSON_PRETTY_PRINT);
+                    "message" => "Database exception: " . $e->getMessage()
+                ]);
             }
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "status" => "error",
-                "message" => "Database exception: " . $e->getMessage()
-            ]);
-        }
 
-        exit;
+            exit;
+        }
 
     }
     public function generateUUIDv4() 
