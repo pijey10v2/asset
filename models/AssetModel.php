@@ -137,7 +137,7 @@ class AssetModel
         }
 
         // Duplicate check
-        $cModelElement = $this->conn->real_escape_string($rowData['c_model_element'] ?? '');
+        $cModelElement = $this->conn->real_escape_string($rowData['Element ID'] ?? '');
         $cImportBatch = $this->conn->real_escape_string($importBatchNo ?? '');
         $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable`
                     WHERE c_model_element = '$cModelElement'
