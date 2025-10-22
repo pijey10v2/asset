@@ -137,12 +137,12 @@ class AssetModel
         }
 
         // Duplicate check
-        $cModelElement = $conn->real_escape_string($rowData['c_model_element'] ?? '');
-        $cImportBatch = $conn->real_escape_string($importBatchNo ?? '');
+        $cModelElement = $this->conn->real_escape_string($rowData['c_model_element'] ?? '');
+        $cImportBatch = $this->conn->real_escape_string($importBatchNo ?? '');
         $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable`
                     WHERE c_model_element = '$cModelElement'
                     AND c_import_batch = '$cImportBatch'";
-        $checkRes = $conn->query($checkSql);
+        $checkRes = $this->conn->query($checkSql);
         $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0;
 
         if ($exists) {
