@@ -118,7 +118,6 @@ class AssetModel
         if (isset($rowData[0]) && is_array($rowData[0])) {
             $rowData = $rowData[0];
         }
-        //var_dump($rowData);
 
         if (empty($rowData['id'])) {
             $rowData['id'] = $this->generateUUIDv4();
