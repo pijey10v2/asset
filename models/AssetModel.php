@@ -135,6 +135,27 @@ class AssetModel
             }
         }
 
+        // Duplicate check
+        $cModelElement = $conn->real_escape_string($rowData['c_model_element'] ?? '');
+        $cImportBatch = $conn->real_escape_string($importBatchNo ?? '');
+        $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable`
+                    WHERE c_model_element = '$cModelElement'
+                    AND c_import_batch = '$cImportBatch'";
+        $checkRes = $conn->query($checkSql);
+        $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0;
+
+        if ($exists) {
+            echo json_encode([
+                "status" => "duplicate",
+                "message" => "Record already exists. Skipping insert.",
+                "criteria" => [
+                    "c_model_element" => $cModelElement,
+                    "c_import_batch" => $cImportBatch
+                ]
+            ], JSON_PRETTY_PRINT);
+            exit;
+        }
+
         // Build Insert SQL dynamically
         $cols = [];
         $vals = [];
