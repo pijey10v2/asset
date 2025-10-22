@@ -68,7 +68,8 @@ class AssetModel
             'createdBy',
             'createdByName',
             'modifiedBy',
-            'modifiedByName'
+            'modifiedByName',
+            'c_model_element',
         ];
 
         while ($row = $res->fetch_assoc()) {
