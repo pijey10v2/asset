@@ -146,6 +146,7 @@ class AssetModel
         $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0;
 
         if ($exists) { // Record already exists
+
             echo json_encode([
                 "status" => "duplicate",
                 "message" => "Record already exists. Skipping insert.",
@@ -155,6 +156,7 @@ class AssetModel
                 ]
             ], JSON_PRETTY_PRINT);
             exit;
+
         }else{ // Record does not exist, insert it
             // Build Insert SQL dynamically
             $cols = [];
@@ -194,6 +196,38 @@ class AssetModel
             exit;
         }
 
+    }
+    public function updateExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch)
+    {
+        $updates = [];
+        foreach ($rowData as $col => $val) {
+            if ($col !== 'id') {
+                $updates[] = "`$col` = '" . $conn->real_escape_string($val) . "'";
+            }
+        }
+
+        $updateSql = "UPDATE `$assetTable`
+                    SET " . implode(", ", $updates) . "
+                    WHERE c_model_element = '$cModelElement'
+                    AND c_import_batch = '$cImportBatch'";
+
+        if ($conn->query($updateSql)) {
+            echo json_encode([
+                "status" => "updated",
+                "message" => "Existing record updated.",
+                "criteria" => [
+                    "c_model_element" => $cModelElement,
+                    "c_import_batch" => $cImportBatch
+                ]
+            ], JSON_PRETTY_PRINT);
+        } else {
+            echo json_encode([
+                "status" => "error",
+                "message" => "Update failed: " . $conn->error,
+                "sql" => $updateSql
+            ], JSON_PRETTY_PRINT);
+        }
+        exit;
     }
     public function generateUUIDv4() 
     {
