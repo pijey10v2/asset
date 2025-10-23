@@ -102,8 +102,10 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
-    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData)
+    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData)
     {
+
+        var_dump($bimData);
     
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {

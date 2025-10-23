@@ -53,8 +53,9 @@ class AssetController
         $importBatchNo = $input["import_batch_no"] ?? null;
         $dataId = $input["data_id"] ?? null;
         $rowDataJson = $input["row_data"] ?? null;
+        $bimResultJson = $input["bim_results"] ?? null;
 
-        if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowDataJson)) {
+        if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowDataJson) || empty($bimResultJson)) {
             http_response_code(400);
             return [
                 "status" => "error",
@@ -71,7 +72,16 @@ class AssetController
             ];
         }
 
-        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData);
+        $bimData = json_decode($bimResultJson, true);
+        if (empty($bimData)) {
+            http_response_code(400);
+            return [
+                "status" => "error",
+                "message" => "Invalid BIM data"
+            ];
+        }
+
+        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData);
     }
 
 }
