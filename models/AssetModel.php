@@ -160,14 +160,21 @@ class AssetModel
 
         // BIM Matching: match c_model_element with ps2, assign ElementId
         $cModelElement = $rowData['c_model_element'] ?? null;
+        $matched = false;
+
         if ($cModelElement && is_array($bimData)) {
             foreach ($bimData as $bimRow) {
                 if (($bimRow['ps2'] ?? null) == $cModelElement) {
                     $rowData['c_element_id'] = $bimRow['ElementId'];
-                }else{
-                    $rowData['c_element_id'] = null;
+                    $matched = true;
+                    break;
                 }
             }
+        }
+
+        // If no match found, set c_element_id = NULL (or 'N/A')
+        if (!$matched) {
+            $rowData['c_element_id'] = null; // or 'N/A'
         }
 
         // Auto-create missing columns
@@ -206,7 +213,11 @@ class AssetModel
             $vals = [];
             foreach ($rowData as $col => $val) {
                 $cols[] = "`$col`";
-                $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
+                if (is_null($val) || $val === '') {
+                    $vals[] = "NULL";
+                } else {
+                    $vals[] = "'" . $conn->real_escape_string($val) . "'";
+                }
             }
 
             // Build SQL
