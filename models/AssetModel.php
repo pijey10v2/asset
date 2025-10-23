@@ -139,7 +139,7 @@ class AssetModel
             foreach ($bimData as $bimRow) {
                 if (($bimRow['ps2'] ?? null) == $cModelElement) {
                     $rowData['c_element_id'] = $bimRow['ElementId'];
-                    break;
+                    //break;
                 }
             }
         }
