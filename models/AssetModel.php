@@ -69,6 +69,7 @@ class AssetModel
             'createdByName',
             'modifiedBy',
             'modifiedByName',
+            'c_element_id',
             //'c_model_element',
         ];
 
