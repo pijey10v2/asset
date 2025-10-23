@@ -106,6 +106,7 @@ class AssetModel
     {
 
         var_dump($bimData);
+        exit;
     
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
