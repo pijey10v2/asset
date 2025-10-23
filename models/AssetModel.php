@@ -80,6 +80,18 @@ class AssetModel
             'modifiedBy',
             'modifiedByName',
             'c_element_id',
+            'c_fullname',
+            'c_username',
+            'c_package_id',
+            'c_project_owner',
+            'c_project_id',
+            'c_data_id',
+            'c_audit',
+            'c_id_counter',
+            'c_action',
+            'c_id_type',
+            'c_import_batch',
+            'c_package_uuid',
         ];
 
         // Loop through columns and add to array
