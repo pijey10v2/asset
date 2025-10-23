@@ -104,10 +104,6 @@ class AssetModel
 
     public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData)
     {
-
-        var_dump($bimData);
-        exit;
-    
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
@@ -123,6 +119,11 @@ class AssetModel
             $rowData = $rowData[0];
         }
 
+        // Decode BIM data if JSON string
+        if (is_string($bimData)) {
+            $bimData = json_decode($bimData, true);
+        }
+
         if (empty($rowData['id'])) {
             $rowData['id'] = $this->generateUUIDv4();
         }
@@ -130,6 +131,17 @@ class AssetModel
         // Add import metadata fields (for tracking)
         $rowData["c_import_batch"] = $importBatchNo;
         $rowData["c_data_id"] = $dataId;
+
+        // BIM Matching: match c_model_element with ps2, assign ElementId
+        $cModelElement = $rowData['c_model_element'] ?? null;
+        if ($cModelElement && is_array($bimData)) {
+            foreach ($bimData as $bimRow) {
+                if (($bimRow['ps2'] ?? null) == $cModelElement) {
+                    $rowData['c_element_id'] = $bimRow['ElementId'];
+                    break;
+                }
+            }
+        }
 
         // Auto-create missing columns
         foreach ($rowData as $col => $val) {
@@ -150,15 +162,30 @@ class AssetModel
 
         if ($exists) { // Record already exists
 
-            echo json_encode([
+            // echo json_encode([
+            //     "status" => "duplicate",
+            //     "message" => "Record already exists. Skipping insert.",
+            //     "criteria" => [
+            //         "c_model_element" => $cModelElement,
+            //         "c_import_batch" => $cImportBatch
+            //     ]
+            // ], JSON_PRETTY_PRINT);
+            // exit;
+
+            // Update c_element_id if BIM matched
+            if (!empty($rowData['c_element_id'])) {
+                $updateSql = "UPDATE `$assetTable`
+                            SET c_element_id = '" . $conn->real_escape_string($rowData['c_element_id']) . "'
+                            WHERE c_model_element = '" . $conn->real_escape_string($rowData['c_model_element']) . "'
+                            AND c_import_batch = '" . $conn->real_escape_string($importBatchNo) . "'";
+                $conn->query($updateSql);
+            }
+
+            return [
                 "status" => "duplicate",
-                "message" => "Record already exists. Skipping insert.",
-                "criteria" => [
-                    "c_model_element" => $cModelElement,
-                    "c_import_batch" => $cImportBatch
-                ]
-            ], JSON_PRETTY_PRINT);
-            exit;
+                "message" => "Record already exists, updated BIM element if applicable.",
+                "updated" => !empty($rowData['c_element_id'])
+            ];
 
         }else{ // Record does not exist, insert it
             // Build Insert SQL dynamically
