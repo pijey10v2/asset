@@ -216,7 +216,7 @@ class AssetModel
                 if (is_null($val) || $val === '') {
                     $vals[] = "NULL";
                 } else {
-                    $vals[] = "'" . $conn->real_escape_string($val) . "'";
+                    $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
                 }
             }
 
