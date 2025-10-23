@@ -2,16 +2,17 @@
 require_once __DIR__ . '/vendor/autoload.php';
 use Dotenv\Dotenv;
 
-
 // Environment Setup
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
 
+// Set Headers
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *"); // or specify your domain instead of '*'
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 
+// Handle CORS Preflight Requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -51,6 +52,7 @@ elseif ($method === 'POST') {
     $mode = $input['mode'] ?? null;
 }
 else {
+    // Method not allowed
     http_response_code(405);
     echo json_encode([
         "status" => "error",
@@ -59,6 +61,7 @@ else {
     exit;
 }
 
+// Validate Input
 if (!$mode) {
     http_response_code(400);
     echo json_encode([
@@ -72,5 +75,5 @@ if (!$mode) {
 $controller = new AssetController();
 $response = $controller->handleRequest($mode, $input);
 
-// Send Response
+// Send Response 
 echo json_encode($response, JSON_PRETTY_PRINT);
