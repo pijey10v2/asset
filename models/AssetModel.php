@@ -182,11 +182,16 @@ class AssetModel
                 $conn->query($updateSql);
             }
 
-            return [
+            echo json_encode([
                 "status" => "duplicate",
                 "message" => "Record already exists, updated BIM element if applicable.",
-                "updated" => !empty($rowData['c_element_id'])
-            ];
+                "updated" => !empty($rowData['c_element_id']),
+                "criteria" => [
+                    "c_model_element" => $cModelElement,
+                    "c_import_batch" => $cImportBatch
+                ]
+            ], JSON_PRETTY_PRINT);
+            exit;
 
         }else{ // Record does not exist, insert it
             // Build Insert SQL dynamically
