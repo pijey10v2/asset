@@ -14,7 +14,7 @@ class AssetModel
     private function tableExists($table)
     {   
         // Escape table name to prevent SQL injection attacks
-        $safe = $this->conn->real_escape_string($table);
+        $safe = sanitize($this->conn, $table);
         // Check if table exists
         $check = $this->conn->query("SHOW TABLES LIKE '$safe'");
         // Return true if table exists, false otherwise
@@ -172,8 +172,8 @@ class AssetModel
         }
 
         // Duplicate check
-        $cModelElement = $this->conn->real_escape_string($rowData['c_model_element'] ?? '');
-        $cImportBatch = $this->conn->real_escape_string($importBatchNo ?? '');
+        $cModelElement = sanitize($this->conn, $rowData['c_model_element'] ?? '');
+        $cImportBatch = sanitize($this->conn, $importBatchNo ?? '');
 
         // Check if record already exists
         $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable` WHERE c_model_element = '$cModelElement' AND c_import_batch = '$cImportBatch'";
@@ -202,7 +202,7 @@ class AssetModel
                 if (is_null($val) || $val === '') {
                     $vals[] = "NULL";
                 } else {
-                    $vals[] = "'" . $this->conn->real_escape_string($val) . "'";
+                    $vals[] = sanitize($this->conn, $val);
                 }
             }
 
@@ -243,9 +243,9 @@ class AssetModel
     {
         // Update c_element_id if BIM matched
             if (!empty($rowData['c_element_id'])) {
-                $updateSql = "UPDATE `$assetTable` SET c_element_id = '" . $this->conn->real_escape_string($rowData['c_element_id']) . "'
-                            WHERE c_model_element = '" . $this->conn->real_escape_string($rowData['c_model_element']) . "'
-                            AND c_import_batch = '" . $this->conn->real_escape_string($importBatchNo) . "'";
+                $updateSql = "UPDATE `$assetTable` SET c_element_id = '" . sanitize($this->conn, $rowData['c_element_id']) . "'
+                            WHERE c_model_element = '" . sanitize($this->conn, $rowData['c_model_element']) . "'
+                            AND c_import_batch = '" . sanitize($this->conn, $importBatchNo) . "'";
                 $this->conn->query($updateSql);
             }
 
@@ -266,7 +266,7 @@ class AssetModel
         $updates = [];
         foreach ($rowData as $col => $val) {
             if ($col !== 'id') {
-                $updates[] = "`$col` = '" . $this->conn->real_escape_string($val) . "'";
+                $updates[] = "`$col` = '" . sanitize($this->conn, $val) . "'";
             }
         }
 
