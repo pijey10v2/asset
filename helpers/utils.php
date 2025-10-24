@@ -35,13 +35,20 @@ function jsonResponse($status, $message, $data = [], $httpCode = 200)
 }
 
 /**
- * Sanitize string input for safe SQL usage
+ * Sanitize string input for safe SQL insert usage
+ */
+function sanitizeInsertSqlValue($conn, $value)
+{
+    return "'" . $conn->real_escape_string($value) . "'";
+}
+
+/**
+ * Sanitize string input only
  */
 function sanitize($conn, $value)
 {
     return $conn->real_escape_string($value);
 }
-
 
 /**
  * Write a log entry to /logs/api.log with timestamp and context

@@ -222,7 +222,7 @@ class AssetModel
                 if (is_null($val) || $val === '') {
                     $vals[] = "NULL";
                 } else {
-                    $vals[] = sanitize($this->conn, $val);
+                    $vals[] = sanitizeInsertSqlValue($this->conn, $val);
                 }
             }
 
