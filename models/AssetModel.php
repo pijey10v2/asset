@@ -202,15 +202,8 @@ class AssetModel
 
         if ($exists) { // Record already exists, skip insert
 
-            echo json_encode([
-                "status" => "duplicate",
-                "message" => "Record already exists. Skipping insert.",
-                "criteria" => [
-                    "c_model_element" => $cModelElement,
-                    "c_import_batch" => $cImportBatch
-                ]
-            ], JSON_PRETTY_PRINT);
-            exit;
+            // Update existing records based on matched ids
+            $this->updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch);
 
         }else{ // Record does not exist, insert it 
 
@@ -265,28 +258,6 @@ class AssetModel
             exit;
         }
 
-    }
-    public function updateElementId($rowData, $assetTable, $importBatchNo, $cModelElement, $cImportBatch)
-    {
-        // Update c_element_id if BIM matched
-            if (!empty($rowData['c_element_id'])) {
-                $updateSql = "UPDATE `$assetTable` SET c_element_id = '" . sanitize($this->conn, $rowData['c_element_id']) . "'
-                            WHERE c_model_element = '" . sanitize($this->conn, $rowData['c_model_element']) . "'
-                            AND c_import_batch = '" . sanitize($this->conn, $importBatchNo) . "'";
-                $this->conn->query($updateSql);
-            }
-
-            // Return duplicate message
-            echo json_encode([
-                "status" => "duplicate",
-                "message" => "Record already exists, updated BIM element if applicable.",
-                "updated" => !empty($rowData['c_element_id']),
-                "criteria" => [
-                    "c_model_element" => $cModelElement,
-                    "c_import_batch" => $cImportBatch
-                ]
-            ], JSON_PRETTY_PRINT);
-            exit;
     }
     public function updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch)
     {
