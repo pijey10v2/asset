@@ -1,28 +1,14 @@
 <?php
+require_once __DIR__ . '/../helpers/utils.php';
+
 class AssetModel
 {
     private $conn;
 
     public function __construct()
     {
-        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-        $port = $_ENV['DB_PORT'] ?? '3306';
-        $user = $_ENV['DB_USER'] ?? 'root';
-        $password = $_ENV['DB_PASSWORD'] ?? '';
-        $database = $_ENV['DB_NAME'] ?? 'jwdb';
-
-        // Connect to database
-        $this->conn = @new mysqli($host, $user, $password, $database, $port);
-
-        // Check connection
-        if ($this->conn->connect_error) {
-            http_response_code(500);
-            echo json_encode([
-                "status" => "error",
-                "message" => "DB connection failed: " . $this->conn->connect_error
-            ]);
-            exit;
-        }
+        // Include and reuse shared DB connection
+        $this->conn = require __DIR__ . '/../config/database.php';
     }
 
     private function tableExists($table)
@@ -151,7 +137,7 @@ class AssetModel
 
         // Generate UUIDv4 if missing
         if (empty($rowData['id'])) {
-            $rowData['id'] = $this->generateUUIDv4();
+            $rowData['id'] = generateUUIDv4();
         }
 
         // Add import metadata fields (for tracking)
@@ -308,15 +294,5 @@ class AssetModel
             ], JSON_PRETTY_PRINT);
         }
         exit;
-    }
-    public function generateUUIDv4() 
-    {
-        // Generate random bytes
-        $data = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // version 4
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // variant 
-
-        // Convert to UUIDv4 format
-        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 }
