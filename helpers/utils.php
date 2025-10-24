@@ -39,7 +39,7 @@ function jsonResponse($status, $message, $data = [], $httpCode = 200)
  */
 function sanitize($conn, $value)
 {
-    return "'" . $conn->real_escape_string($value) . "'";
+    return $conn->real_escape_string($value);
 }
 
 
