@@ -130,7 +130,7 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
-    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData)
+    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName)
     {
         logMessage("Insert operation started", "info", ["table" => $assetTable, "data_id" => $dataId]);
 
@@ -159,6 +159,13 @@ class AssetModel
         if (empty($rowData['id'])) {
             $rowData['id'] = generateUUIDv4();
         }
+
+        $rowData['dateCreated'] = date('Y-m-d h:i:s');
+        $rowData['dateModified'] = date('Y-m-d h:i:s');
+        $rowData['createdBy'] = $createdBy;
+        $rowData['createdByName'] = $createdByName;
+        $rowData['modifiedBy'] = $createdBy;
+        $rowData['modifiedByName'] = $createdByName;
 
         // Add import metadata fields (for tracking)
         $rowData["c_import_batch"] = $importBatchNo;

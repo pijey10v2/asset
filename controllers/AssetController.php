@@ -59,6 +59,8 @@ class AssetController
         $dataId = $input["data_id"] ?? null;
         $rowDataJson = $input["row_data"] ?? null;
         $bimResultJson = $input["bim_results"] ?? null;
+        $createdBy = $input["createdBy"] ?? null;
+        $createdByName = $input["createdByName"] ?? null;
         
         // validate input
         if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowDataJson) || empty($bimResultJson)) {
@@ -94,7 +96,7 @@ class AssetController
         }
  
         // insert data into database
-        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData);
+        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
     }
 
 }
