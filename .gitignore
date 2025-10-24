@@ -1,3 +1,7 @@
-/vendor
-/logs
+/vendor/
+.logs/
 .env
+
+# Ignore logs but keep folder
+/logs/*
+!/logs/.gitignore
