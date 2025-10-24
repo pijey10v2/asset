@@ -232,31 +232,35 @@ class AssetModel
             // Execute SQL
             try {
                 if ($this->conn->query($sql)) {
-                    logMessage("Insert successful", "info", ["insert_id" => $this->conn->insert_id, "table" => $assetTable]);
+                    $logMessage = "Row inserted successfully.";
+                    $logType = "info";
                     echo json_encode([
                         "status" => "success",
-                        "message" => "Row inserted successfully.",
+                        "message" => $logMessage,
                         "table" => $assetTable,
-                        "insert_id" => $this->conn->insert_id,
                         "data" => $rowData
                     ], JSON_PRETTY_PRINT);
                 } else {
                     http_response_code(500);
-                    logMessage("Database insert failed", "error", ["error" => $this->conn->error, "sql" => $sql]);
+                    $logMessage = "Insert failed: " . $this->conn->error;
+                    $logType = "error";
                     echo json_encode([
-                        "status" => "error",
-                        "message" => "Insert failed: " . $this->conn->error,
+                        "status" => $logType,
+                        "message" => $logMessage,
                         "sql" => $sql
                     ], JSON_PRETTY_PRINT);
                 }
             } catch (Exception $e) {
                 http_response_code(500);
-                logMessage("Database exception: ", "error", ["error" => $e->getMessage()]);
+                $logMessage = "Database exception: " . $e->getMessage();
+                $logType = "error";
                 echo json_encode([
-                    "status" => "error",
-                    "message" => "Database exception: " . $e->getMessage()
+                    "status" => $logType,
+                    "message" => $logMessage
                 ]);
             }
+
+            logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
 
             exit;
         }
