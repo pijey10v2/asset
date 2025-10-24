@@ -20,21 +20,6 @@ function generateUUIDv4()
 }
 
 /**
- * Return a standardized JSON response
- */
-function jsonResponse($status, $message, $data = [], $httpCode = 200)
-{
-    http_response_code($httpCode);
-    header("Content-Type: application/json; charset=UTF-8");
-    echo json_encode([
-        "status" => $status,
-        "message" => $message,
-        "data" => $data
-    ], JSON_PRETTY_PRINT);
-    exit;
-}
-
-/**
  * Sanitize string input for safe SQL insert usage
  */
 function sanitizeInsertSqlValue($conn, $value)
