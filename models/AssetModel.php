@@ -40,7 +40,7 @@ class AssetModel
         }
 
         logMessage("Tables fetched successfully", "info", ["count" => count($tables)]);
-        
+
         // Return array of table names
         return ["status" => "success", "tables" => $tables];
     }
@@ -50,6 +50,7 @@ class AssetModel
         // Verify that table exists 
         if (!$this->tableExists($table)) {
             http_response_code(404);
+            logMessage("Table '$table' does not exist.", "error", ["error" => $this->conn->error]);
             return [
                 "status" => "error",
                 "message" => "Table '$table' does not exist."
@@ -62,6 +63,7 @@ class AssetModel
         // Check if query was successful
         if (!$res) {
             http_response_code(500);
+            logMessage("Failed to fetch columns: " . $this->conn->error, "error", ["error" => $this->conn->error]);
             return [
                 "status" => "error",
                 "message" => "Failed to fetch columns: " . $this->conn->error
@@ -101,6 +103,7 @@ class AssetModel
                 $cols[] = $column;
             }
         }
+        logMessage("Tables columns fetched successfully", "info", ["cols" => $cols]);
         // Return array of column names
         return [
             "status" => "success",
@@ -117,19 +120,24 @@ class AssetModel
         // Verify that rawfile_mapping is an array
         if (empty($rawMapping) || !is_array($rawMapping)) {
             http_response_code(400);
+            logMessage("Invalid or missing rawfile_mapping", "error", ["error" => "Invalid or missing rawfile_mapping"]);
             return ["status" => "error", "message" => "Invalid or missing rawfile_mapping"];
         }
 
         $first = $rawMapping[0] ?? []; 
+        logMessage("Excel columns fetched successfully", "info", ["cols" => array_keys($first)]);
         // Verify that first row is an associative array
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
     public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData)
     {
+        logMessage("Insert operation started", "info", ["table" => $assetTable, "data_id" => $dataId]);
+
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
+            logMessage("Target table '$assetTable' does not exist.", "error", ["error" => "Target table '$assetTable' does not exist."]);
             echo json_encode([
                 "status" => "error",
                 "message" => "Target table '$assetTable' does not exist."
@@ -224,6 +232,7 @@ class AssetModel
             // Execute SQL
             try {
                 if ($this->conn->query($sql)) {
+                    logMessage("Insert successful", "info", ["id" => $uuid, "table" => $assetTable]);
                     echo json_encode([
                         "status" => "success",
                         "message" => "Row inserted successfully.",
@@ -233,6 +242,7 @@ class AssetModel
                     ], JSON_PRETTY_PRINT);
                 } else {
                     http_response_code(500);
+                    logMessage("Database insert failed", "error", ["error" => $this->conn->error, "sql" => $sql]);
                     echo json_encode([
                         "status" => "error",
                         "message" => "Insert failed: " . $this->conn->error,
@@ -241,6 +251,7 @@ class AssetModel
                 }
             } catch (Exception $e) {
                 http_response_code(500);
+                logMessage("Database exception: ", "error", ["error" => $e->getMessage()]);
                 echo json_encode([
                     "status" => "error",
                     "message" => "Database exception: " . $e->getMessage()
