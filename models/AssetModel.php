@@ -9,6 +9,7 @@ class AssetModel
     {
         // Include and reuse shared DB connection
         $this->conn = require __DIR__ . '/../config/database.php';
+        logMessage("Database connection initialized", "info");
     }
 
     private function tableExists($table)
@@ -21,14 +22,25 @@ class AssetModel
         return ($check && $check->num_rows > 0);
     }
 
-    public function getAllTables(){
+    public function getAllTables()
+    {
+        logMessage("Fetching all tables", "info");
         // Get all tables starting with "app_fd_inv_"
         $sql = "SHOW TABLES LIKE 'app_fd_inv_%'";
         $result = $this->conn->query($sql);
+
+        if (!$result) {
+            logMessage("Failed to retrieve tables", "error", ["error" => $this->conn->error]);
+            return ["status" => "error", "message" => $this->conn->error];
+        }
+
         $tables = [];
         while ($row = $result->fetch_assoc()) {
             $tables[] = $row["Tables_in_jwdb (app_fd_inv_%)"];
         }
+
+        logMessage("Tables fetched successfully", "info", ["count" => count($tables)]);
+        
         // Return array of table names
         return ["status" => "success", "tables" => $tables];
     }

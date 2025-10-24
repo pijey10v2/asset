@@ -41,3 +41,33 @@ function sanitize($conn, $value)
 {
     return "'" . $conn->real_escape_string($value) . "'";
 }
+
+
+/**
+ * Write a log entry to /logs/api.log with timestamp and context
+ *
+ * @param string $message The log message
+ * @param string $level   The log level (info, warning, error)
+ * @param array  $context Optional contextual data
+ */
+function logMessage($message, $level = 'info', $context = [])
+{
+    $logDir = __DIR__ . '/../logs';
+    if (!is_dir($logDir)) {
+        mkdir($logDir, 0777, true);
+    }
+
+    $logFile = $logDir . '/api.log';
+    $timestamp = date('Y-m-d H:i:s');
+
+    $logEntry = sprintf(
+        "[%s] [%s] %s%s",
+        $timestamp,
+        strtoupper($level),
+        $message,
+        !empty($context) ? ' ' . json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : ''
+    );
+
+    file_put_contents($logFile, $logEntry . PHP_EOL, FILE_APPEND);
+}
+

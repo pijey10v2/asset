@@ -7,7 +7,8 @@ The API supports reading Excel raw data (from Laravel), mapping columns to Joget
 # 📁 Project Structure (MVC Layout)
 
 /JavaBridge/asset/  
-│  
+├── /logs/  
+│   └── api.log  
 ├── /config/  
 │   └── database.php            # MySQL database connection using .env  
 │  
