@@ -261,6 +261,8 @@ class AssetModel
     }
     public function updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch)
     {
+        logMessage("Existing record started updating.", "info", ["table" => $assetTable, "c_model_element" => $cModelElement]);
+
         $updates = [];
         foreach ($rowData as $col => $val) {
             if ($col !== 'id') {
@@ -276,6 +278,7 @@ class AssetModel
 
         // Execute SQL
         if ($this->conn->query($updateSql)) {
+            logMessage("Existing record updated.", "info", ["table" => $assetTable, "c_model_element" => $cModelElement]);
             echo json_encode([
                 "status" => "updated",
                 "message" => "Existing record updated.",
@@ -285,6 +288,7 @@ class AssetModel
                 ]
             ], JSON_PRETTY_PRINT);
         } else {
+            logMessage("Update failed: " . $this->conn->error, "error", ["error" => "Update failed: " . $this->conn->error]);
             echo json_encode([
                 "status" => "error",
                 "message" => "Update failed: " . $this->conn->error,
