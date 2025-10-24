@@ -232,7 +232,7 @@ class AssetModel
             // Execute SQL
             try {
                 if ($this->conn->query($sql)) {
-                    logMessage("Insert successful", "info", ["id" => $uuid, "table" => $assetTable]);
+                    logMessage("Insert successful", "info", ["insert_id" => $this->conn->insert_id, "table" => $assetTable]);
                     echo json_encode([
                         "status" => "success",
                         "message" => "Row inserted successfully.",
