@@ -130,7 +130,7 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
-    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName)
+    public function insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName, $projectData)
     {
         logMessage("Insert operation started", "info", ["table" => $assetTable, "data_id" => $dataId]);
 
@@ -155,9 +155,22 @@ class AssetModel
             $bimData = json_decode($bimData, true);
         }
 
+        // Decode project data if JSON string
+        if (is_string($projectData)) {
+            $projectData = json_decode($projectData, true);
+        }
+
         // Generate UUIDv4 if missing
         if (empty($rowData['id'])) {
             $rowData['id'] = generateUUIDv4();
+        }
+
+        // Add project data to row data
+        if (is_array($projectData) && isset($projectData['c_package_id'])) {
+            $rowData['c_package_id'] = $projectData['c_package_id'];
+            $rowData['c_package_uuid'] = $projectData['c_package_uuid'];
+            $rowData['c_project_id'] = $projectData['c_project_id'];
+            $rowData['c_project_owner'] = $projectData['c_project_owner'];
         }
 
         $rowData['dateCreated'] = date('Y-m-d h:i:s');
