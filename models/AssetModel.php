@@ -24,9 +24,7 @@ class AssetModel
 
     public function getAllTables()
     {
-        logMessage("Fetching all tables", "info");
-        // Get all tables starting with "app_fd_inv_"
-        $sql = "SHOW TABLES LIKE 'app_fd_inv_%'";
+        $sql = "SHOW TABLES LIKE 'app_fd_%'";
         $result = $this->conn->query($sql);
 
         if (!$result) {
@@ -34,15 +32,29 @@ class AssetModel
             return ["status" => "error", "message" => $this->conn->error];
         }
 
+        $allowedTables = [
+            'app_fd_network',
+            'app_fd_inv_bridge',
+            'app_fd_inv_culvert',
+            'app_fd_inv_drainage',
+            'app_fd_inv_pavement',
+            'app_fd_inv_furniture',
+            'app_fd_inv_slope'
+        ];
+
         $tables = [];
-        while ($row = $result->fetch_assoc()) {
-            $tables[] = $row["Tables_in_jwdb (app_fd_inv_%)"];
+        while ($row = $result->fetch_array()) {
+            $tableName = $row[0];
+            if (in_array($tableName, $allowedTables, true)) {
+                $tables[] = $tableName;
+            }
         }
 
-        logMessage("Tables fetched successfully", "info", ["count" => count($tables)]);
-
-        // Return array of table names
-        return ["status" => "success", "tables" => $tables];
+        logMessage("Filtered tables retrieved", "info", ["tables" => $tables]);
+        return [
+            "status" => "success",
+            "tables" => $tables
+        ];
     }
 
     public function getTableColumns($table)
