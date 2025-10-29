@@ -24,38 +24,52 @@ class AssetModel
 
     public function getAllTables()
     {
+        // Explicit whitelist mapping (Label => Table Name)
+        $allowedTables = [
+            'Network'        => 'app_fd_network',
+            'Bridge'         => 'app_fd_inv_bridge',
+            'Culvert'        => 'app_fd_inv_culvert',
+            'Drainage'       => 'app_fd_inv_drainage',
+            'Pavement'       => 'app_fd_inv_pavement',
+            'Road Furniture' => 'app_fd_inv_furniture',
+            'Slope'          => 'app_fd_inv_slope'
+        ];
+
         $sql = "SHOW TABLES LIKE 'app_fd_%'";
         $result = $this->conn->query($sql);
 
         if (!$result) {
             logMessage("Failed to retrieve tables", "error", ["error" => $this->conn->error]);
-            return ["status" => "error", "message" => $this->conn->error];
+            return [
+                "status" => "error",
+                "message" => "Database query failed: " . $this->conn->error
+            ];
         }
 
-        $allowedTables = [
-            'app_fd_network',
-            'app_fd_inv_bridge',
-            'app_fd_inv_culvert',
-            'app_fd_inv_drainage',
-            'app_fd_inv_pavement',
-            'app_fd_inv_furniture',
-            'app_fd_inv_slope'
-        ];
-
-        $tables = [];
+        $existingTables = [];
         while ($row = $result->fetch_array()) {
-            $tableName = $row[0];
-            if (in_array($tableName, $allowedTables, true)) {
-                $tables[] = $tableName;
+            $existingTables[] = $row[0];
+        }
+
+        // Filter only the tables that exist and are whitelisted
+        $filteredTables = [];
+        foreach ($allowedTables as $label => $tableName) {
+            if (in_array($tableName, $existingTables, true)) {
+                $filteredTables[] = [
+                    "label" => "{$label} - {$tableName}",
+                    "table" => $tableName
+                ];
             }
         }
 
-        logMessage("Filtered tables retrieved", "info", ["tables" => $tables]);
+        logMessage("Whitelisted tables retrieved", "info", ["count" => count($filteredTables)]);
+
         return [
             "status" => "success",
-            "tables" => $tables
+            "tables" => $filteredTables
         ];
     }
+
 
     public function getTableColumns($table)
     {
