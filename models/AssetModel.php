@@ -168,7 +168,7 @@ class AssetModel
                 "status" => "error",
                 "message" => "Target table '$assetTable' does not exist."
             ]);
-            exit;
+            //exit;
         }
 
         // If $rowData is array-of-rows, get the first one
@@ -288,7 +288,7 @@ class AssetModel
 
             logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
 
-            exit;
+            //exit;
         }
 
     }
