@@ -160,11 +160,17 @@ class AssetModel
     {
         logMessage("Insert operation started", "info", ["table" => $assetTable, "data_id" => $dataId]);
 
+        $output = [
+            "status" => "success",
+            "message" => "",
+            "row" => $rowData
+        ];
+
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
             logMessage("Target table '$assetTable' does not exist.", "error", ["error" => "Target table '$assetTable' does not exist."]);
-            echo json_encode([
+            return json_encode([
                 "status" => "error",
                 "message" => "Target table '$assetTable' does not exist."
             ]);
@@ -260,7 +266,7 @@ class AssetModel
                 if ($this->conn->query($sql)) {
                     $logMessage = "Row inserted successfully.";
                     $logType = "info";
-                    echo json_encode([
+                    return json_encode([
                         "status" => "success",
                         "message" => $logMessage,
                         "table" => $assetTable,
@@ -270,7 +276,7 @@ class AssetModel
                     http_response_code(500);
                     $logMessage = "Insert failed: " . $this->conn->error;
                     $logType = "error";
-                    echo json_encode([
+                    return json_encode([
                         "status" => $logType,
                         "message" => $logMessage,
                         "sql" => $sql
@@ -280,7 +286,7 @@ class AssetModel
                 http_response_code(500);
                 $logMessage = "Database exception: " . $e->getMessage();
                 $logType = "error";
-                echo json_encode([
+                return json_encode([
                     "status" => $logType,
                     "message" => $logMessage
                 ]);
@@ -289,6 +295,8 @@ class AssetModel
             logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
 
             //exit;
+
+            return $output;
         }
 
     }
