@@ -171,11 +171,6 @@ class AssetModel
             exit;
         }
 
-        // // If $rowData is array-of-rows, get the first one
-        // if (isset($rowData[0]) && is_array($rowData[0])) {
-        //     $rowData = $rowData[0];
-        // }
-
         // Decode BIM data if JSON string
         if (is_string($bimData)) {
             $bimData = json_decode($bimData, true);

@@ -56,6 +56,8 @@ class AssetController
 
     private function insertAssetData($input)
     {
+        // Single data insert
+
         $assetTable = $input["asset_table_name"] ?? null;
         $importBatchNo = $input["import_batch_no"] ?? null;
         $dataId = $input["data_id"] ?? null;
@@ -103,6 +105,9 @@ class AssetController
 
     private function insertBulkAssetData($input)
     {
+
+        // Bulk data insert
+
         $assetTable = $input["asset_table_name"] ?? null;
         $importBatchNo = $input["import_batch_no"] ?? null;
         $dataId = $input["data_id"] ?? null;
@@ -126,15 +131,15 @@ class AssetController
         $updated = 0;
         $errors = [];
 
+        // Loop row data before insert
         foreach ($rows as $index => $row) {
 
-            // We call the model directly instead of the HTTP mode method
             try {
                 $result = $this->model->insertAssetData(
                     $assetTable,
                     $importBatchNo,
                     $dataId,
-                    $row,          // single row
+                    $row, // single row
                     $bimData,
                     $createdBy,
                     $createdByName
