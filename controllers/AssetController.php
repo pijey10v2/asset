@@ -22,8 +22,6 @@ class AssetController
                 return $this->getExcelColumns($input);
             case 'insert_asset_data':
                 return $this->insertAssetData($input);
-            case 'insert_asset_data_batch':
-                return $this->insertAssetDataBatch($input);
             default:
             // invalid mode
                 http_response_code(400);
@@ -100,39 +98,5 @@ class AssetController
         // insert data into database
         return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
     }
-
-    private function insertAssetDataBatch($input)
-    {
-        $assetTable = $input["asset_table_name"] ?? null;
-        $importBatchNo = $input["import_batch_no"] ?? null;
-        $dataId = $input["data_id"] ?? null;
-        $rowsJson = $input["rows_data"] ?? null;
-        $bimResultJson = $input["bim_results"] ?? null;
-        $createdBy = $input["createdBy"] ?? null;
-        $createdByName = $input["createdByName"] ?? null;
-
-        if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowsJson) || empty($bimResultJson)) {
-            http_response_code(400);
-            return ["status" => "error", "message" => "Invalid input"];
-        }
-
-        $rows = json_decode($rowsJson, true);
-        $bimData = json_decode($bimResultJson, true);
-
-        if (!is_array($rows) || empty($rows)) {
-            http_response_code(400);
-            return ["status" => "error", "message" => "Invalid rows data"];
-        }
-
-        $results = [];
-        foreach ($rows as $rowData) {
-
-            // Reuse your existing single-row function but WITHOUT exit
-            $result = $this->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
-            $results[] = $result;
-        }
-
-    }
-
 
 }
