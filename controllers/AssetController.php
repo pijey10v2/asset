@@ -128,7 +128,7 @@ class AssetController
         foreach ($rows as $rowData) {
 
             // Reuse your existing single-row function but WITHOUT exit
-            $result = $this->insertSingleAssetRow($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
+            $result = $this->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
             $results[] = $result;
         }
 
