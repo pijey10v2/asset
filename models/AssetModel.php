@@ -171,127 +171,125 @@ class AssetModel
             exit;
         }
 
-        // // If $rowData is array-of-rows, get the first one
-        // if (isset($rowData[0]) && is_array($rowData[0])) {
-        //     $rowData = $rowData[0];
-        // }
+        // If $rowData is array-of-rows, get the first one
+        if (isset($rowData[0]) && is_array($rowData[0])) {
+            $rowData = $rowData[0];
+        }
 
         // Decode BIM data if JSON string
         if (is_string($bimData)) {
             $bimData = json_decode($bimData, true);
         }
 
-        foreach ($rowData as $key => $rData) {
+        // Generate UUIDv4 if missing
+        if (empty($rowData['id'])) {
+            $rowData['id'] = generateUUIDv4();
+        }
 
-            // Generate UUIDv4 if missing
-            if (empty($rData['id'])) {
-                $rData['id'] = generateUUIDv4();
-            }
+        $rowData['dateCreated'] = date('Y-m-d h:i:s');
+        $rowData['dateModified'] = date('Y-m-d h:i:s');
+        $rowData['createdBy'] = $createdBy;
+        $rowData['createdByName'] = $createdByName;
+        $rowData['modifiedBy'] = $createdBy;
+        $rowData['modifiedByName'] = $createdByName;
 
-            $rData['dateCreated'] = date('Y-m-d h:i:s');
-            $rData['dateModified'] = date('Y-m-d h:i:s');
-            $rData['createdBy'] = $createdBy;
-            $rData['createdByName'] = $createdByName;
-            $rData['modifiedBy'] = $createdBy;
-            $rData['modifiedByName'] = $createdByName;
+        // Add import metadata fields (for tracking)
+        $rowData["c_import_batch"] = $importBatchNo;
+        $rowData["c_data_id"] = $dataId;
 
-            // Add import metadata fields (for tracking)
-            $rData["c_import_batch"] = $importBatchNo;
-            $rData["c_data_id"] = $dataId;
+        // BIM Matching: match c_model_element with ps2, assign ElementId
+        $cModelElement = $rowData['c_model_element'] ?? null;
+        $matched = false;
 
-            // BIM Matching: match c_model_element with ps2, assign ElementId
-            $cModelElement = $rData['c_model_element'] ?? null;
-            $matched = false;
-
-            if ($cModelElement && is_array($bimData)) {
-                foreach ($bimData as $bimRow) {
-                    if (($bimRow['ps2'] ?? null) == $cModelElement) {
-                        $rData['c_element_id'] = $bimRow['ElementId'];
-                        $matched = true;
-                        break;
-                    }
+        if ($cModelElement && is_array($bimData)) {
+            foreach ($bimData as $bimRow) {
+                if (($bimRow['ps2'] ?? null) == $cModelElement) {
+                    $rowData['c_element_id'] = $bimRow['ElementId'];
+                    $matched = true;
+                    break;
                 }
-            }
-
-            // If no match found, set c_element_id = NULL (or 'N/A')
-            if (!$matched) {
-                $rData['c_element_id'] = null; // or 'N/A'
-            }
-
-            // Auto-create missing columns
-            foreach ($rowData as $col => $val) {
-                $exists = $this->conn->query("SHOW COLUMNS FROM `$assetTable` LIKE '$col'");
-                if (!$exists || $exists->num_rows === 0) {
-                    $this->conn->query("ALTER TABLE `$assetTable` ADD COLUMN `$col` VARCHAR(255) NULL");
-                }
-            }
-
-            // Duplicate check
-            $cModelElement = sanitize($this->conn, $rData['c_model_element'] ?? '');
-            $cImportBatch = sanitize($this->conn, $importBatchNo ?? '');
-
-            // Check if record already exists
-            $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable` WHERE c_model_element = '$cModelElement' AND c_import_batch = '$cImportBatch'";
-            $checkRes = $this->conn->query($checkSql);
-            $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0; // Check if record exists
-
-            if ($exists) { // Record already exists, skip insert
-
-                // Update existing records based on matched ids
-                $this->updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch);
-
-            }else{ // Record does not exist, insert it 
-
-                // Build Insert SQL dynamically
-                $cols = [];
-                $vals = [];
-                foreach ($rowData as $col => $val) {
-                    $cols[] = "`$col`";
-                    if (is_null($val) || $val === '') {
-                        $vals[] = "NULL";
-                    } else {
-                        $vals[] = sanitizeInsertSqlValue($this->conn, $val);
-                    }
-                }
-
-                // Build SQL
-                $sql = "INSERT INTO `$assetTable` (" . implode(",", $cols) . ") VALUES (" . implode(",", $vals) . ")";
-
-                // Execute SQL
-                try {
-                    if ($this->conn->query($sql)) {
-                        $logMessage = "Row inserted successfully.";
-                        $logType = "info";
-                        echo json_encode([
-                            "status" => "success",
-                            "message" => $logMessage,
-                            "table" => $assetTable,
-                            "data" => $rowData
-                        ], JSON_PRETTY_PRINT);
-                    } else {
-                        http_response_code(500);
-                        $logMessage = "Insert failed: " . $this->conn->error;
-                        $logType = "error";
-                        echo json_encode([
-                            "status" => $logType,
-                            "message" => $logMessage,
-                            "sql" => $sql
-                        ], JSON_PRETTY_PRINT);
-                    }
-                } catch (Exception $e) {
-                    http_response_code(500);
-                    $logMessage = "Database exception: " . $e->getMessage();
-                    $logType = "error";
-                    echo json_encode([
-                        "status" => $logType,
-                        "message" => $logMessage
-                    ]);
-                }
-
-                logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
             }
         }
 
+        // If no match found, set c_element_id = NULL (or 'N/A')
+        if (!$matched) {
+            $rowData['c_element_id'] = null; // or 'N/A'
+        }
+
+        // Auto-create missing columns
+        foreach ($rowData as $col => $val) {
+            $exists = $this->conn->query("SHOW COLUMNS FROM `$assetTable` LIKE '$col'");
+            if (!$exists || $exists->num_rows === 0) {
+                $this->conn->query("ALTER TABLE `$assetTable` ADD COLUMN `$col` VARCHAR(255) NULL");
+            }
+        }
+
+        // Duplicate check
+        $cModelElement = sanitize($this->conn, $rowData['c_model_element'] ?? '');
+        $cImportBatch = sanitize($this->conn, $importBatchNo ?? '');
+
+        // Check if record already exists
+        $checkSql = "SELECT COUNT(*) AS total FROM `$assetTable` WHERE c_model_element = '$cModelElement' AND c_import_batch = '$cImportBatch'";
+        $checkRes = $this->conn->query($checkSql);
+        $exists = $checkRes && $checkRes->fetch_assoc()['total'] > 0; // Check if record exists
+
+        if ($exists) { // Record already exists, skip insert
+
+            // Update existing records based on matched ids
+            $this->updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch);
+
+        }else{ // Record does not exist, insert it 
+
+            // Build Insert SQL dynamically
+            $cols = [];
+            $vals = [];
+            foreach ($rowData as $col => $val) {
+                $cols[] = "`$col`";
+                if (is_null($val) || $val === '') {
+                    $vals[] = "NULL";
+                } else {
+                    $vals[] = sanitizeInsertSqlValue($this->conn, $val);
+                }
+            }
+
+            // Build SQL
+            $sql = "INSERT INTO `$assetTable` (" . implode(",", $cols) . ") VALUES (" . implode(",", $vals) . ")";
+
+            // Execute SQL
+            try {
+                if ($this->conn->query($sql)) {
+                    $logMessage = "Row inserted successfully.";
+                    $logType = "info";
+                    echo json_encode([
+                        "status" => "success",
+                        "message" => $logMessage,
+                        "table" => $assetTable,
+                        "data" => $rowData
+                    ], JSON_PRETTY_PRINT);
+                } else {
+                    http_response_code(500);
+                    $logMessage = "Insert failed: " . $this->conn->error;
+                    $logType = "error";
+                    echo json_encode([
+                        "status" => $logType,
+                        "message" => $logMessage,
+                        "sql" => $sql
+                    ], JSON_PRETTY_PRINT);
+                }
+            } catch (Exception $e) {
+                http_response_code(500);
+                $logMessage = "Database exception: " . $e->getMessage();
+                $logType = "error";
+                echo json_encode([
+                    "status" => $logType,
+                    "message" => $logMessage
+                ]);
+            }
+
+            logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
+
+            exit;
+        }
 
     }
     public function updateAllExistingAssetData($rowData, $assetTable, $cModelElement, $cImportBatch)
