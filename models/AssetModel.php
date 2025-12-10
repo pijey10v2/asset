@@ -171,10 +171,10 @@ class AssetModel
             exit;
         }
 
-        // If $rowData is array-of-rows, get the first one
-        if (isset($rowData[0]) && is_array($rowData[0])) {
-            $rowData = $rowData[0];
-        }
+        // // If $rowData is array-of-rows, get the first one
+        // if (isset($rowData[0]) && is_array($rowData[0])) {
+        //     $rowData = $rowData[0];
+        // }
 
         // Decode BIM data if JSON string
         if (is_string($bimData)) {
@@ -260,35 +260,35 @@ class AssetModel
                 if ($this->conn->query($sql)) {
                     $logMessage = "Row inserted successfully.";
                     $logType = "info";
-                    echo json_encode([
+                    return [
                         "status" => "success",
                         "message" => $logMessage,
                         "table" => $assetTable,
                         "data" => $rowData
-                    ], JSON_PRETTY_PRINT);
+                    ];
                 } else {
                     http_response_code(500);
                     $logMessage = "Insert failed: " . $this->conn->error;
                     $logType = "error";
-                    echo json_encode([
-                        "status" => $logType,
+                    return [
+                        "status" => "success",
                         "message" => $logMessage,
+                        "data" => $rowData,
                         "sql" => $sql
-                    ], JSON_PRETTY_PRINT);
+                    ];
                 }
             } catch (Exception $e) {
                 http_response_code(500);
                 $logMessage = "Database exception: " . $e->getMessage();
                 $logType = "error";
-                echo json_encode([
-                    "status" => $logType,
-                    "message" => $logMessage
-                ]);
+                return [
+                    "status" => "success",
+                    "message" => $logMessage,
+                    "data" => $rowData
+                ];
             }
 
             logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
-
-            exit;
         }
 
     }
@@ -312,21 +312,21 @@ class AssetModel
         // Execute SQL
         if ($this->conn->query($updateSql)) {
             logMessage("Existing record updated.", "info", ["table" => $assetTable, "c_model_element" => $cModelElement]);
-            echo json_encode([
+            return [
                 "status" => "updated",
                 "message" => "Existing record updated.",
                 "criteria" => [
                     "c_model_element" => $cModelElement,
                     "c_import_batch" => $cImportBatch
                 ]
-            ], JSON_PRETTY_PRINT);
+            ];
         } else {
             logMessage("Update failed: " . $this->conn->error, "error", ["error" => "Update failed: " . $this->conn->error]);
-            echo json_encode([
+            return [
                 "status" => "error",
                 "message" => "Update failed: " . $this->conn->error,
                 "sql" => $updateSql
-            ], JSON_PRETTY_PRINT);
+            ];
         }
         exit;
     }

@@ -22,6 +22,8 @@ class AssetController
                 return $this->getExcelColumns($input);
             case 'insert_asset_data':
                 return $this->insertAssetData($input);
+            case 'bulk_insert_asset_data':
+                return $this->insertBulkAssetData($input);
             default:
             // invalid mode
                 http_response_code(400);
@@ -98,5 +100,74 @@ class AssetController
         // insert data into database
         return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
     }
+
+    private function insertBulkAssetData($input)
+    {
+        $assetTable = $input["asset_table_name"] ?? null;
+        $importBatchNo = $input["import_batch_no"] ?? null;
+        $dataId = $input["data_id"] ?? null;
+        $rowsJson = $input["row_data"] ?? null;
+        $bimJson = $input["bim_results"] ?? null;
+        $createdBy = $input["createdBy"] ?? null;
+        $createdByName = $input["createdByName"] ?? null;
+
+        // decode
+        $rows = json_decode($rowsJson, true);
+        $bimData = json_decode($bimJson, true);
+
+        if (!is_array($rows)) {
+            return [
+                "status" => "error",
+                "message" => "Invalid bulk row_data"
+            ];
+        }
+
+        $inserted = 0;
+        $updated = 0;
+        $errors = [];
+
+        foreach ($rows as $index => $row) {
+
+            // We call the model directly instead of the HTTP mode method
+            try {
+                $result = $this->model->insertAssetData(
+                    $assetTable,
+                    $importBatchNo,
+                    $dataId,
+                    $row,          // single row
+                    $bimData,
+                    $createdBy,
+                    $createdByName
+                );
+
+                if (isset($result['status']) && $result['status'] === 'success') {
+                    $inserted++;
+                } elseif ($result['status'] === 'updated') {
+                    $updated++;
+                } else {
+                    $errors[] = [
+                        "index" => $index,
+                        "row" => $row,
+                        "error" => $result
+                    ];
+                }
+
+            } catch (Exception $e) {
+                $errors[] = [
+                    "index" => $index,
+                    "row" => $row,
+                    "error" => $e->getMessage()
+                ];
+            }
+        }
+
+        return [
+            "status" => "bulk_completed",
+            "inserted" => $inserted,
+            "updated"  => $updated,
+            "errors" => $errors
+        ];
+    }
+
 
 }
