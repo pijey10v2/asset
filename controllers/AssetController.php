@@ -132,11 +132,6 @@ class AssetController
             $results[] = $result;
         }
 
-        return [
-            "status" => "success",
-            "total" => count($rows),
-            "results" => $results
-        ];
     }
 
 

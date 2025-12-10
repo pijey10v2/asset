@@ -160,12 +160,6 @@ class AssetModel
     {
         logMessage("Insert operation started", "info", ["table" => $assetTable, "data_id" => $dataId]);
 
-        $output = [
-            "status" => "success",
-            "message" => "",
-            "row" => $rowData
-        ];
-
         // Verify that table exists
         if (!$this->tableExists($assetTable)) {
             http_response_code(404);
@@ -177,10 +171,10 @@ class AssetModel
             //exit;
         }
 
-        // If $rowData is array-of-rows, get the first one
-        if (isset($rowData[0]) && is_array($rowData[0])) {
-            $rowData = $rowData[0];
-        }
+        // // If $rowData is array-of-rows, get the first one
+        // if (isset($rowData[0]) && is_array($rowData[0])) {
+        //     $rowData = $rowData[0];
+        // }
 
         // Decode BIM data if JSON string
         if (is_string($bimData)) {
@@ -295,8 +289,6 @@ class AssetModel
             logMessage($logMessage, $logType, ["table" => $assetTable, "data_id" => $dataId]);
 
             //exit;
-
-            return $output;
         }
 
     }
