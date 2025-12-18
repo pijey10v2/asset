@@ -139,7 +139,7 @@ class AssetController
                     $assetTable,
                     $importBatchNo,
                     $dataId,
-                    $row, // array of rows
+                    [$row], // array of rows
                     $bimData,
                     $createdBy,
                     $createdByName
