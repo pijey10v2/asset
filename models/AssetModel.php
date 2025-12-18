@@ -335,6 +335,24 @@ class AssetModel
         $createdByName
     ) {
 
+        // Send response FIRST
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'accepted',
+            'message' => 'Insert started'
+        ]);
+
+        // Flush output buffers safely (IIS-compatible)
+        if (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+        flush();
+
+        // Allow script to continue
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         logMessage("Bulk insert started", "info", [
             "table" => $assetTable,
             "rows" => count($rows)
