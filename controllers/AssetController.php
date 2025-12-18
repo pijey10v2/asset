@@ -125,6 +125,23 @@ class AssetController
             ];
         }
 
+        // SEND RESPONSE ONCE
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'accepted',
+            'rows' => count($rows)
+        ]);
+
+        if (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+        flush();
+
+        // CONTINUE PROCESSING
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $inserted = 0;
         $updated = 0;
         $errors = [];
