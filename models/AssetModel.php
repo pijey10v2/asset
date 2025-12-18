@@ -325,4 +325,140 @@ class AssetModel
         }
         exit;
     }
+    public function insertAssetDataBulk(
+        $assetTable,
+        $importBatchNo,
+        $dataId,
+        array $rows,
+        $bimData,
+        $createdBy,
+        $createdByName
+    ) {
+        set_time_limit(0);
+        ini_set('memory_limit', '10G');
+
+        logMessage("Bulk insert started", "info", [
+            "table" => $assetTable,
+            "rows" => count($rows)
+        ]);
+
+        if (empty($rows)) {
+            return ["status" => "error", "message" => "No data to insert"];
+        }
+
+        // Validate table
+        if (!$this->tableExists($assetTable)) {
+            http_response_code(404);
+            return ["status" => "error", "message" => "Target table does not exist"];
+        }
+
+        // Decode BIM data
+        if (is_string($bimData)) {
+            $bimData = json_decode($bimData, true);
+        }
+
+        // Build BIM lookup (FAST)
+        $bimLookup = [];
+        if (is_array($bimData)) {
+            foreach ($bimData as $bim) {
+                if (!empty($bim['ps2'])) {
+                    $bimLookup[$bim['ps2']] = $bim['ElementId'] ?? null;
+                }
+            }
+        }
+
+        // Fetch existing columns ONCE
+        $existingColumns = [];
+        $res = $this->conn->query("SHOW COLUMNS FROM `$assetTable`");
+        while ($col = $res->fetch_assoc()) {
+            $existingColumns[$col['Field']] = true;
+        }
+
+        // Normalize rows + collect missing columns
+        $missingColumns = [];
+
+        foreach ($rows as &$row) {
+
+            $row['id'] ??= generateUUIDv4();
+            $row['dateCreated'] = date('Y-m-d H:i:s');
+            $row['dateModified'] = date('Y-m-d H:i:s');
+            $row['createdBy'] = $createdBy;
+            $row['createdByName'] = $createdByName;
+            $row['modifiedBy'] = $createdBy;
+            $row['modifiedByName'] = $createdByName;
+
+            $row['c_import_batch'] = $importBatchNo;
+            $row['c_data_id'] = $dataId;
+
+            // BIM match
+            $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
+
+            foreach ($row as $col => $val) {
+                if (!isset($existingColumns[$col])) {
+                    $missingColumns[$col] = true;
+                }
+            }
+        }
+        unset($row);
+
+        // Add missing columns ONCE
+        if (!empty($missingColumns)) {
+            $alter = [];
+            foreach (array_keys($missingColumns) as $col) {
+                $alter[] = "ADD COLUMN `$col` VARCHAR(255) NULL";
+            }
+            $this->conn->query(
+                "ALTER TABLE `$assetTable` " . implode(', ', $alter)
+            );
+        }
+
+        // Build BULK UPSERT SQL
+        $columns = array_keys($rows[0]);
+        $columnSql = '`' . implode('`,`', $columns) . '`';
+
+        $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
+        $valuesSql = implode(',', array_fill(0, count($rows), $placeholders));
+
+        $updateSql = implode(', ', array_map(
+            fn($col) => "`$col` = VALUES(`$col`)",
+            $columns
+        ));
+
+        $sql = "
+            INSERT INTO `$assetTable` ($columnSql)
+            VALUES $valuesSql
+            ON DUPLICATE KEY UPDATE $updateSql
+        ";
+
+        // Prepare + bind
+        $stmt = $this->conn->prepare($sql);
+
+        $types = '';
+        $values = [];
+
+        foreach ($rows as $row) {
+            foreach ($columns as $col) {
+                $types .= 's';
+                $values[] = $row[$col] ?? null;
+            }
+        }
+
+        $stmt->bind_param($types, ...$values);
+
+        // Execute inside transaction
+        $this->conn->begin_transaction();
+        $stmt->execute();
+        $this->conn->commit();
+
+        logMessage("Bulk insert completed", "info", [
+            "table" => $assetTable,
+            "rows" => count($rows)
+        ]);
+
+        return [
+            "status" => "success",
+            "inserted" => count($rows)
+        ];
+    }
+
 }

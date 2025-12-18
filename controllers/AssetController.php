@@ -135,11 +135,11 @@ class AssetController
         foreach ($rows as $index => $row) {
 
             try {
-                $result = $this->model->insertAssetData(
+                $result = $this->model->insertAssetDataBulk(
                     $assetTable,
                     $importBatchNo,
                     $dataId,
-                    $row, // single row
+                    [$row], // array of rows
                     $bimData,
                     $createdBy,
                     $createdByName
