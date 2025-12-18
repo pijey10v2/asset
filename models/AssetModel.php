@@ -379,7 +379,7 @@ class AssetModel
 
         foreach ($rows as &$row) {
 
-            $row['id'] ??= generateUUIDv4();
+            $row['id'] = generateUUIDv4();
             $row['dateCreated'] = date('Y-m-d H:i:s');
             $row['dateModified'] = date('Y-m-d H:i:s');
             $row['createdBy'] = $createdBy;
