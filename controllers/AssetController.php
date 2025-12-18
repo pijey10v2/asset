@@ -105,89 +105,61 @@ class AssetController
 
     private function insertBulkAssetData($input)
     {
-        // Bulk data insert
-        $assetTable = $input["asset_table_name"] ?? null;
-        $importBatchNo = $input["import_batch_no"] ?? null;
-        $dataId = $input["data_id"] ?? null;
-        $rowsJson = $input["row_data"] ?? null;
-        $bimJson = $input["bim_results"] ?? null;
-        $createdBy = $input["createdBy"] ?? null;
-        $createdByName = $input["createdByName"] ?? null;
-
-        // decode
-        $rows = json_decode($rowsJson, true);
-        $bimData = json_decode($bimJson, true);
-
-        if (!is_array($rows)) {
-            return [
-                "status" => "error",
-                "message" => "Invalid bulk row_data"
-            ];
+        // VERY LIGHT validation only
+        if (empty($input['row_data'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Missing row_data']);
+            return;
         }
 
-        // SEND RESPONSE ONCE
+        // SEND RESPONSE IMMEDIATELY (NO HEAVY WORK BEFORE THIS)
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'accepted',
-            'rows' => count($rows)
+            'message' => 'Insert queued'
         ]);
 
-        if (ob_get_level() > 0) {
+        // FORCE FLUSH (IIS SAFE)
+        while (ob_get_level() > 0) {
             ob_end_flush();
         }
         flush();
 
-        // CONTINUE PROCESSING
+        // NOW we can do heavy work
         ignore_user_abort(true);
         set_time_limit(0);
-        ini_set('memory_limit', '1024M');
+        ini_set('memory_limit', '10G');
 
-        $inserted = 0;
-        $updated = 0;
-        $errors = [];
+        // EVERYTHING BELOW THIS LINE CAN BE SLOW
+        $assetTable     = $input["asset_table_name"];
+        $importBatchNo  = $input["import_batch_no"];
+        $dataId         = $input["data_id"];
+        $rows           = json_decode($input["row_data"], true);
+        $bimData        = json_decode($input["bim_results"], true);
+        $createdBy      = $input["createdBy"];
+        $createdByName  = $input["createdByName"];
 
-        // Loop row data before insert
-        foreach ($rows as $index => $row) {
-
-            try {
-                $result = $this->model->insertAssetDataBulk(
-                    $assetTable,
-                    $importBatchNo,
-                    $dataId,
-                    [$row], // array of rows
-                    $bimData,
-                    $createdBy,
-                    $createdByName
-                );
-
-                if (isset($result['status']) && $result['status'] === 'success') {
-                    $inserted++;
-                } elseif ($result['status'] === 'updated') {
-                    $updated++;
-                } else {
-                    $errors[] = [
-                        "index" => $index,
-                        "row" => $row,
-                        "error" => $result
-                    ];
-                }
-
-            } catch (Exception $e) {
-                $errors[] = [
-                    "index" => $index,
-                    "row" => $row,
-                    "error" => $e->getMessage()
-                ];
-            }
+        if (!is_array($rows) || empty($rows)) {
+            logMessage("Invalid rows", "error");
+            return;
         }
 
-        return [
-            "status" => "bulk_completed",
-            "inserted" => $inserted,
-            "updated"  => $updated,
-            "errors" => $errors
-        ];
+        // ONE bulk call only
+        $this->model->insertAssetDataBulk(
+            $assetTable,
+            $importBatchNo,
+            $dataId,
+            $rows,
+            $bimData,
+            $createdBy,
+            $createdByName
+        );
+
+        logMessage("Bulk insert finished", "info", [
+            'rows' => count($rows)
+        ]);
     }
+
 
 
 }
