@@ -355,13 +355,6 @@ class AssetModel
             $bimData = json_decode($bimData, true);
         }
 
-        // Flush response to client (Laravel)
-        fastcgi_finish_request();
-
-        ignore_user_abort(true);
-        set_time_limit(0);
-        ini_set('memory_limit', '10G');
-
         // Build BIM lookup (FAST)
         $bimLookup = [];
         if (is_array($bimData)) {
