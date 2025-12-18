@@ -20,8 +20,6 @@ class AssetController
                 return $this->getTableColumns($input);
             case 'get_excel_columns':
                 return $this->getExcelColumns($input);
-            case 'insert_asset_data':
-                return $this->insertAssetData($input);
             case 'bulk_insert_asset_data':
                 return $this->insertBulkAssetData($input);
             default:
@@ -52,55 +50,6 @@ class AssetController
         // get columns of an excel file from rawfile mapping
         $rawMapping = isset($input['rawfile_mapping']) ? json_decode($input['rawfile_mapping'], true) : [];
         return $this->model->getExcelColumns($rawMapping);
-    }
-
-    private function insertAssetData($input)
-    {
-        // Single data insert
-
-        $assetTable = $input["asset_table_name"] ?? null;
-        $importBatchNo = $input["import_batch_no"] ?? null;
-        $dataId = $input["data_id"] ?? null;
-        $rowDataJson = $input["row_data"] ?? null;
-        $bimResultJson = $input["bim_results"] ?? null;
-        $createdBy = $input["createdBy"] ?? null;
-        $createdByName = $input["createdByName"] ?? null;
-        
-        // validate input
-        if (empty($assetTable) || empty($importBatchNo) || empty($dataId) || empty($rowDataJson) || empty($bimResultJson)) {
-            http_response_code(400);
-            return [
-                "status" => "error",
-                "message" => "Invalid input"
-            ];
-        }
-
-        // decode input
-        $rowData = json_decode($rowDataJson, true);
-
-        // validate row data
-        if (empty($rowData)) {
-            http_response_code(400);
-            return [
-                "status" => "error",
-                "message" => "Invalid row data"
-            ];
-        }
- 
-        // decode BIM data
-        $bimData = json_decode($bimResultJson, true);
-
-        // validate BIM data
-        if (empty($bimData)) {
-            http_response_code(400);
-            return [
-                "status" => "error",
-                "message" => "Invalid BIM data"
-            ];
-        }
- 
-        // insert data into database
-        return $this->model->insertAssetData($assetTable, $importBatchNo, $dataId, $rowData, $bimData, $createdBy, $createdByName);
     }
 
     private function insertBulkAssetData($input)
