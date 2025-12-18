@@ -105,17 +105,6 @@ class AssetController
 
     private function insertBulkAssetData($input)
     {
-        header('Content-Type: application/json');
-        return [
-            'status' => 'accepted',
-            'message' => 'Insert queued'
-        ];
-
-        // Flush response to client (Laravel)
-        fastcgi_finish_request();
-
-        ignore_user_abort(true);
-        set_time_limit(0);
 
         // Bulk data insert
         $assetTable = $input["asset_table_name"] ?? null;

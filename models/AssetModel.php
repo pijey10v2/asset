@@ -334,8 +334,6 @@ class AssetModel
         $createdBy,
         $createdByName
     ) {
-        set_time_limit(0);
-        ini_set('memory_limit', '10G');
 
         logMessage("Bulk insert started", "info", [
             "table" => $assetTable,
@@ -356,6 +354,13 @@ class AssetModel
         if (is_string($bimData)) {
             $bimData = json_decode($bimData, true);
         }
+
+        // Flush response to client (Laravel)
+        fastcgi_finish_request();
+
+        ignore_user_abort(true);
+        set_time_limit(0);
+        ini_set('memory_limit', '10G');
 
         // Build BIM lookup (FAST)
         $bimLookup = [];
