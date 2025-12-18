@@ -105,14 +105,12 @@ class AssetController
 
     private function insertBulkAssetData($input)
     {
-        // VERY LIGHT validation only
         if (empty($input['row_data'])) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => 'Missing row_data']);
             return;
         }
 
-        // SEND RESPONSE IMMEDIATELY (NO HEAVY WORK BEFORE THIS)
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'accepted',
@@ -125,12 +123,10 @@ class AssetController
         }
         flush();
 
-        // NOW we can do heavy work
         ignore_user_abort(true);
         set_time_limit(0);
         ini_set('memory_limit', '10G');
 
-        // EVERYTHING BELOW THIS LINE CAN BE SLOW
         $assetTable     = $input["asset_table_name"];
         $importBatchNo  = $input["import_batch_no"];
         $dataId         = $input["data_id"];
@@ -144,7 +140,7 @@ class AssetController
             return;
         }
 
-        // ONE bulk call only
+        // one bulk call only
         $this->model->insertAssetDataBulk(
             $assetTable,
             $importBatchNo,
