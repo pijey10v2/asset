@@ -156,21 +156,15 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
-    public function insertAssetDataBulk(
-        $assetTable,
-        $importBatchNo,
-        $dataId,
-        array $rows,
-        $bimData,
-        $createdBy,
-        $createdByName
-    ) {
-
+    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName) 
+    {
+        // Log start of bulk insert
         logMessage("Bulk insert started", "info", [
             "table" => $assetTable,
             "rows" => count($rows)
         ]);
 
+        // Validate rows
         if (empty($rows)) {
             return ["status" => "error", "message" => "No data to insert"];
         }
@@ -253,6 +247,7 @@ class AssetModel
             $columns
         ));
 
+        // Final SQL
         $sql = "
             INSERT INTO `$assetTable` ($columnSql)
             VALUES $valuesSql
@@ -265,13 +260,15 @@ class AssetModel
         $types = '';
         $values = [];
 
+        // Flatten values for binding
         foreach ($rows as $row) {
             foreach ($columns as $col) {
-                $types .= 's';
+                $types .= 's'; // assuming all string types for simplicity
                 $values[] = $row[$col] ?? null;
             }
         }
 
+        // Bind parameters dynamically
         $stmt->bind_param($types, ...$values);
 
         // Execute inside transaction
@@ -279,11 +276,13 @@ class AssetModel
         $stmt->execute();
         $this->conn->commit();
 
+        // Log completion of bulk insert
         logMessage("Bulk insert completed", "info", [
             "table" => $assetTable,
             "rows" => count($rows)
         ]);
 
+        // Return success
         return [
             "status" => "success",
             "inserted" => count($rows)
