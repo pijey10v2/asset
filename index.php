@@ -47,16 +47,22 @@ if ($method === 'GET') {
 }
 // POST Request -> JSON or form-data
 elseif ($method === 'POST') {
-    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
-    if (str_contains($contentType, 'application/json')) {
-        $input = json_decode(file_get_contents("php://input"), true) ?? [];
-    } else {
+    $rawBody = file_get_contents("php://input");
+    $jsonBody = json_decode($rawBody, true);
+
+    if (is_array($jsonBody)) {
+        $input = $jsonBody;
+    } elseif (!empty($_POST)) {
         $input = $_POST;
+    } else {
+        $input = [];
     }
 
-    $mode = $input['mode'] ?? null;
+    // allow mode from BODY or QUERY
+    $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
 }
+
 else {
     // Method not allowed
     http_response_code(405);
