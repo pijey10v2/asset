@@ -47,8 +47,14 @@ if ($method === 'GET') {
 }
 // POST Request -> JSON or form-data
 elseif ($method === 'POST') {
-    $input = json_decode(file_get_contents("php://input"), true);
-    if (!$input) $input = $_POST;
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+    if (str_contains($contentType, 'application/json')) {
+        $input = json_decode(file_get_contents("php://input"), true) ?? [];
+    } else {
+        $input = $_POST;
+    }
+
     $mode = $input['mode'] ?? null;
 }
 else {
