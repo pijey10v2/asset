@@ -54,22 +54,15 @@ switch ($method) {
         $input = [];
 
         if (str_contains($contentType, 'application/json')) {
-
             // JSON payload
             $input = json_decode($rawBody, true) ?? [];
-
         } elseif (str_contains($contentType, 'application/x-www-form-urlencoded')) {
-
             // Form URL Encoded
             parse_str($rawBody, $input);
-
         } elseif (str_contains($contentType, 'multipart/form-data')) {
-
             // Multipart Form Data (files + fields)
             $input = $_POST ?: [];
-
         } else {
-
             // Fallback (just in case)
             if (!empty($_POST)) {
                 $input = $_POST;
@@ -78,9 +71,7 @@ switch ($method) {
             }
         }
 
-        $mode = $input['mode']
-            ?? ($_GET['mode'] ?? null);
-
+        $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
         break;
     default:
         // Method not allowed
