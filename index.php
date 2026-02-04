@@ -39,48 +39,42 @@ require_once __DIR__ . '/models/AssetModel.php';
 // Parse Input & Route Mode
 $method = $_SERVER['REQUEST_METHOD'];
 $input = [];
+$mode = null;
 
-// GET Request -> query string (e.g., ?mode=get_all_tables)
-if ($method === 'GET') {
-    $mode = $_GET['mode'] ?? null;
-    $input = $_GET;
-}
-// POST Request -> JSON or form-data
-elseif ($method === 'POST') {
+// Parse Input 
+switch ($method) {
+    case 'GET':
+        // GET Request -> query string (e.g., ?mode=get_all_tables)
+        $mode = $_GET['mode'] ?? null;
+        $input = $_GET;
+        break;
+    case 'POST':
+        // POST Request -> JSON or form-data
+        $rawBody = file_get_contents("php://input");
+        $jsonBody = json_decode($rawBody, true);
 
-    $rawBody = file_get_contents("php://input");
-    $jsonBody = json_decode($rawBody, true);
+        if (is_array($jsonBody)) {
+            $input = $jsonBody;
+        } elseif (!empty($_POST)) {
+            $input = $_POST;
+        } else {
+            $input = [];
+        }
 
-    if (is_array($jsonBody)) {
-        $input = $jsonBody;
-    } elseif (!empty($_POST)) {
-        $input = $_POST;
-    } else {
-        $input = [];
-    }
-
-    // allow mode from BODY or QUERY
-    $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
-}
-
-else {
-    // Method not allowed
-    http_response_code(405);
-    echo json_encode([
-        "status" => "error",
-        "message" => "Method not allowed: $method. Only GET and POST are supported."
-    ]);
-    exit;
-}
-
-// Validate Input
-if (!$mode) {
-    http_response_code(400);
-    echo json_encode([
-        "status" => "error",
-        "message" => "Missing required parameter: mode"
-    ]);
-    exit;
+        // allow mode from BODY or QUERY
+        $mode = $input['mode']
+        ?? ($_GET['mode'] ?? null)
+        ?? ($_POST['mode'] ?? null);
+        break;
+    default:
+        // Method not allowed
+        http_response_code(405);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Method not allowed: $method. Only GET and POST are supported."
+        ]);
+        exit;
+        break;
 }
 
 // Dispatch Controller
