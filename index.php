@@ -72,6 +72,9 @@ switch ($method) {
         }
 
         $mode = $input['mode'] ?? null;
+
+        file_put_contents(__DIR__.'/debug_raw.txt', file_get_contents('php://input'));
+
         break;
 
     default:
