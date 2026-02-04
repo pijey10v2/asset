@@ -1,41 +1,34 @@
 <?php
 /**
  * Database Connection Configuration
- * 
- * This file initializes and returns a shared MySQL connection
- * using environment variables from the .env file.
+ * Returns a shared MySQLi connection
+ *
+ * IMPORTANT:
+ * - Do NOT load Dotenv here
+ * - Do NOT echo JSON
+ * - Do NOT call exit()
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = getenv('DB_PORT') ?: 3307;
+$user = getenv('DB_USER') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: '';
+$db   = getenv('DB_NAME') ?: 'jwb';
 
-use Dotenv\Dotenv;
+$conn = new mysqli($host, $user, $pass, $db, $port);
 
-// Load .env file (only once globally)
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->load();
-
-// Database credentials from .env
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$port = $_ENV['DB_PORT'] ?? '3307';
-$user = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASSWORD'] ?? '';
-$database = $_ENV['DB_NAME'] ?? 'jwdb';
-
-// Create connection
-$conn = @new mysqli($host, $user, $password, $database, $port);
-
-// Check for connection error
 if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode([
-        "status" => "error",
-        "message" => "Database connection failed: " . $conn->connect_error
+    // Log only — let index.php decide response
+    logMessage("Database connection failed", "error", [
+        "host" => $host,
+        "db"   => $db,
+        "error"=> $conn->connect_error
     ]);
-    exit;
+
+    // Throw exception so global handler catches it
+    throw new Exception("Database connection failed");
 }
 
-// Optional: set charset
 $conn->set_charset('utf8mb4');
 
-// Return connection
 return $conn;

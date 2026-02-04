@@ -58,6 +58,25 @@ set_error_handler(function ($errno, $errstr, $errfile, $errline) {
 });
 
 /**
+ * GLOBAL EXCEPTION HANDLER
+ */
+set_exception_handler(function (Throwable $e) {
+
+    logMessage("Uncaught exception", "error", [
+        "message" => $e->getMessage(),
+        "file"    => basename($e->getFile()),
+        "line"    => $e->getLine()
+    ]);
+
+    http_response_code(500);
+    echo json_encode([
+        "status"  => "error",
+        "message" => "Internal server error"
+    ]);
+    exit;
+});
+
+/**
  * ---------------------------------------------------------
  * Load Core Classes
  * ---------------------------------------------------------
