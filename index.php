@@ -49,22 +49,27 @@ switch ($method) {
         $input = $_GET;
         break;
     case 'POST':
-        // POST Request -> JSON or form-data
         $rawBody = file_get_contents("php://input");
-        $jsonBody = json_decode($rawBody, true);
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
-        if (is_array($jsonBody)) {
-            $input = $jsonBody;
-        } elseif (!empty($_POST)) {
-            $input = $_POST;
+        if (str_contains($contentType, 'application/json')) {
+            $input = json_decode($rawBody, true) ?? [];
+        } elseif (str_contains($contentType, 'application/x-www-form-urlencoded')) {
+            parse_str($rawBody, $input); 
         } else {
-            $input = [];
+            $input = $_POST ?: [];
         }
 
-        // allow mode from BODY or QUERY
         $mode = $input['mode']
-        ?? ($_GET['mode'] ?? null)
-        ?? ($_POST['mode'] ?? null);
+            ?? ($_GET['mode'] ?? null);
+
+        error_log(print_r([
+            'CONTENT_TYPE' => $_SERVER['CONTENT_TYPE'] ?? null,
+            'RAW' => $rawBody,
+            'POST' => $_POST,
+            'INPUT' => $input,
+        ], true));
+
         break;
     default:
         // Method not allowed
