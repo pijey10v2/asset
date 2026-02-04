@@ -49,34 +49,21 @@ switch ($method) {
         $input = $_GET;
         break;
     case 'POST':
-        $rawBody = file_get_contents('php://input');
+        $rawBody = file_get_contents("php://input");
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
-        if (empty($rawBody)) {
-            http_response_code(400);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Empty POST body (Joget did not forward payload)'
-            ]);
-            exit;
+        if (str_contains($contentType, 'application/json')) {
+            $input = json_decode($rawBody, true) ?? [];
+        } elseif (str_contains($contentType, 'application/x-www-form-urlencoded')) {
+            parse_str($rawBody, $input); 
+        } else {
+            $input = $_POST ?: [];
         }
 
-        $input = json_decode($rawBody, true);
-
-        if (!is_array($input)) {
-            http_response_code(400);
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Invalid JSON payload'
-            ]);
-            exit;
-        }
-
-        $mode = $input['mode'] ?? null;
-
-        file_put_contents(__DIR__.'/debug_raw.txt', file_get_contents('php://input'));
+        $mode = $input['mode']
+            ?? ($_GET['mode'] ?? null);
 
         break;
-
     default:
         // Method not allowed
         http_response_code(405);
