@@ -49,15 +49,33 @@ switch ($method) {
         $input = $_GET;
         break;
     case 'POST':
-        $rawBody = file_get_contents("php://input");
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $rawBody = file_get_contents('php://input');
+        $input = [];
 
         if (str_contains($contentType, 'application/json')) {
+
+            // JSON payload
             $input = json_decode($rawBody, true) ?? [];
+
         } elseif (str_contains($contentType, 'application/x-www-form-urlencoded')) {
-            parse_str($rawBody, $input); 
-        } else {
+
+            // Form URL Encoded
+            parse_str($rawBody, $input);
+
+        } elseif (str_contains($contentType, 'multipart/form-data')) {
+
+            // Multipart Form Data (files + fields)
             $input = $_POST ?: [];
+
+        } else {
+
+            // Fallback (just in case)
+            if (!empty($_POST)) {
+                $input = $_POST;
+            } elseif (!empty($rawBody)) {
+                parse_str($rawBody, $input);
+            }
         }
 
         $mode = $input['mode']
