@@ -68,6 +68,7 @@ switch ($method) {
             'RAW' => $rawBody,
             'POST' => $_POST,
             'INPUT' => $input,
+            'MODE' => $mode,
         ], true));
 
         break;
