@@ -49,6 +49,7 @@ switch ($method) {
         $input = $_GET;
         break;
     case 'POST':
+        // POST Request -> JSON payload or form data
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         $rawBody = file_get_contents('php://input');
         $input = [];
