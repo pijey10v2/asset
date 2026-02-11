@@ -200,6 +200,8 @@ class AssetModel
         // Normalize rows + collect missing columns
         $missingColumns = [];
 
+        $filteredRows = []; // will store only valid rows
+
         foreach ($rows as &$row) {
 
             $row['id'] = generateUUIDv4();
@@ -216,6 +218,38 @@ class AssetModel
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
 
+
+            // Check for required fields
+            $requiredFields = [
+                'c_section',
+                'c_division',
+            ];
+
+            $hasEmptyRequiredField = false;
+
+            foreach ($requiredFields as $field) {
+
+                if (
+                    !isset($row[$field]) ||
+                    $row[$field] === null ||
+                    trim($row[$field]) === '' ||
+                    trim($row[$field]) === 'NULL'
+                ) {
+                    $hasEmptyRequiredField = true;
+                    break;
+                }
+            }
+
+            // Skip inserting this row
+            if ($hasEmptyRequiredField) {
+                continue;
+            }
+
+            // Keep valid row
+            $filteredRows[] = $row;
+
+
+            // Collect missing columns
             foreach ($row as $col => $val) {
                 if (!isset($existingColumns[$col])) {
                     $missingColumns[$col] = true;
