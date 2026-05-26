@@ -46,6 +46,7 @@ switch ($method) {
     case 'GET':
         // GET Request -> query string (e.g., ?mode=get_all_tables)
         $mode = $_GET['mode'] ?? null;
+        $type = $_GET['type'] ?? 'default';
         $input = $_GET;
         break;
     case 'POST':
@@ -87,7 +88,7 @@ switch ($method) {
 
 // Dispatch Controller
 $controller = new AssetController();
-$response = $controller->handleRequest($mode, $input);
+$response = $controller->handleRequest($mode, $input, $type);
 
 // Send Response 
 echo json_encode($response, JSON_PRETTY_PRINT);

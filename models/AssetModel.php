@@ -22,18 +22,28 @@ class AssetModel
         return ($check && $check->num_rows > 0);
     }
 
-    public function getAllTables()
+    public function getAllTables($type)
     {
-        // Explicit whitelist mapping (Label => Table Name)
-        $allowedTables = [
-            'Network'        => 'app_fd_network',
-            'Bridge'         => 'app_fd_inv_bridge',
-            'Culvert'        => 'app_fd_inv_culvert',
-            'Drainage'       => 'app_fd_inv_drainage',
-            'Pavement'       => 'app_fd_inv_pavement',
-            'Road Furniture' => 'app_fd_inv_furniture',
-            'Slope'          => 'app_fd_inv_slope'
-        ];
+
+        if($type == 'cobie'){
+            // Explicit whitelist mapping (Label => Table Name)
+            $allowedTables = [
+                //'Cobie Table'    => 'app_fd_asset_hierarchy',
+                'Cobie Table'    => 'app_fd_asset_data',
+            ];
+        }else{
+            // Explicit whitelist mapping (Label => Table Name)
+            $allowedTables = [
+                'Network'        => 'app_fd_network',
+                'Bridge'         => 'app_fd_inv_bridge',
+                'Culvert'        => 'app_fd_inv_culvert',
+                'Drainage'       => 'app_fd_inv_drainage',
+                'Pavement'       => 'app_fd_inv_pavement',
+                'Road Furniture' => 'app_fd_inv_furniture',
+                'Slope'          => 'app_fd_inv_slope'
+            ];
+        }
+        
 
         $sql = "SHOW TABLES LIKE 'app_fd_%'";
         $result = $this->conn->query($sql);

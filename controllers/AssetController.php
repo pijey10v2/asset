@@ -10,12 +10,12 @@ class AssetController
         $this->model = new AssetModel();
     }
 
-    public function handleRequest($mode, $input)
+    public function handleRequest($mode, $input, $type)
     {
         // handle request based on mode
         switch ($mode) {
             case 'get_all_tables':
-                return $this->getAllTables();
+                return $this->getAllTables($type);
             case 'get_table_columns':
                 return $this->getTableColumns($input);
             case 'get_excel_columns':
@@ -32,10 +32,10 @@ class AssetController
         }
     }
 
-    private function getAllTables()
+    private function getAllTables($type)
     {
         // get all tables from database
-        return $this->model->getAllTables();
+        return $this->model->getAllTables($type);
     }
 
     private function getTableColumns($input)
