@@ -28,8 +28,7 @@ class AssetModel
         if($type == 'cobie'){
             // Explicit whitelist mapping (Label => Table Name)
             $allowedTables = [
-                //'Cobie Table'    => 'app_fd_asset_hierarchy',
-                'Cobie Table'    => 'app_fd_asset_data',
+                'Cobie Table'    => 'app_fd_asset_hierarchy',
             ];
         }else{
             // Explicit whitelist mapping (Label => Table Name)

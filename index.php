@@ -74,6 +74,7 @@ switch ($method) {
         }
 
         $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
+        $type = $_POST['type'] ?? 'default';
         break;
     default:
         // Method not allowed
