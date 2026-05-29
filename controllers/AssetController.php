@@ -17,11 +17,11 @@ class AssetController
             case 'get_all_tables':
                 return $this->getAllTables($type);
             case 'get_table_columns':
-                return $this->getTableColumns($input);
+                return $this->getTableColumns($input, $type);
             case 'get_excel_columns':
                 return $this->getExcelColumns($input);
             case 'bulk_insert_asset_data':
-                return $this->insertBulkAssetData($input);
+                return $this->insertBulkAssetData($input, $type);
             default:
             // invalid mode
                 http_response_code(400);
@@ -38,11 +38,11 @@ class AssetController
         return $this->model->getAllTables($type);
     }
 
-    private function getTableColumns($input)
+    private function getTableColumns($input, $type)
     { 
         // get columns of a table from database 
         $table = $input['asset_table_name'] ?? 'app_fd_inv_pavement';
-        return $this->model->getTableColumns($table);
+        return $this->model->getTableColumns($table, $type);
     }
 
     private function getExcelColumns($input)
@@ -52,7 +52,7 @@ class AssetController
         return $this->model->getExcelColumns($rawMapping);
     }
 
-    private function insertBulkAssetData($input)
+    private function insertBulkAssetData($input, $type)
     {
         if (empty($input['row_data'])) {
             header('Content-Type: application/json');
@@ -97,7 +97,8 @@ class AssetController
             $rows,
             $bimData,
             $createdBy,
-            $createdByName
+            $createdByName,
+            $type
         );
 
         logMessage("Bulk insert finished", "info", [

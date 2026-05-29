@@ -80,7 +80,7 @@ class AssetModel
     }
 
 
-    public function getTableColumns($table)
+    public function getTableColumns($table, $type)
     {
         // Verify that table exists 
         if (!$this->tableExists($table)) {
@@ -142,6 +142,13 @@ class AssetModel
             'c_status',
         ];
 
+        if ($type === 'cobie') {
+            $excluded = array_merge($excluded, [
+                'c_section',
+                'c_division',
+            ]);
+        }
+
         // Loop through columns and add to array
         while ($row = $res->fetch_assoc()) {
             $column = $row['Field'];
@@ -178,7 +185,7 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
-    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName) 
+    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
         // Log start of bulk insert
         logMessage("Bulk insert started", "info", [
@@ -242,10 +249,14 @@ class AssetModel
 
 
             // Check for required fields
-            $requiredFields = [
-                'c_section',
-                'c_division',
-            ];
+            $requiredFields = [];
+
+            if ($type !== 'cobie') {
+                $requiredFields = [
+                    'c_section',
+                    'c_division',
+                ];
+            }
 
             $hasEmptyRequiredField = false;
 
