@@ -107,6 +107,7 @@ class AssetModel
 
         // Columns to exclude
         $excluded = [
+            //default
             'id',
             'dateCreated',
             'dateModified',
@@ -127,6 +128,18 @@ class AssetModel
             'c_id_type',
             'c_import_batch',
             'c_package_uuid',
+            //cobie
+            'c_auto_id',
+            'c_parent_asset_id',
+            'c_asset_type',
+            'c_is_parent',
+            'c_parent_name',
+            'c_full_asset_name',
+            'c_full_asset_code',
+            'c_item_no',
+            'c_parent_id',
+            'c_parent_code',
+            'c_status',
         ];
 
         // Loop through columns and add to array
