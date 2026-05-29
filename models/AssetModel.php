@@ -142,11 +142,15 @@ class AssetModel
             'c_status',
         ];
 
+        // if ($type === 'cobie') {
+        //     $excluded = array_merge($excluded, [
+        //         'c_section',
+        //         'c_division',
+        //     ]);
+        // }
         if ($type === 'cobie') {
-            $excluded = array_merge($excluded, [
-                'c_section',
-                'c_division',
-            ]);
+            $excluded[] = 'c_section';
+            $excluded[] = 'c_division';
         }
 
         // Loop through columns and add to array
