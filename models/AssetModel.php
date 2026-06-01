@@ -183,6 +183,41 @@ class AssetModel
         return ["status" => "success", "columns" => array_keys($first)];
     }
 
+    public function getHierarchyLevel1($table, $type)
+    {
+        // Verify that table exists
+        if (!$this->tableExists($table)) {
+            return [
+                "status" => "error",
+                "message" => "Table '$table' does not exist."
+            ];
+        }
+
+        $sql = "SELECT c_asset_name FROM `$table` ORDER BY c_asset_name";
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return [
+                "status" => "error",
+                "message" => $this->conn->error
+            ];
+        }
+
+        $hierarchies = [];
+
+        while ($row = $result->fetch_assoc()) {
+            $hierarchies[] = [
+                "label" => $row['c_asset_name'],
+                "value" => $row['c_asset_name']
+            ];
+        }
+
+        return [
+            "status" => "success",
+            "hierarchies" => $hierarchies
+        ];
+    }
+
     public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
         // Log start of bulk insert

@@ -20,6 +20,8 @@ class AssetController
                 return $this->getTableColumns($input, $type);
             case 'get_excel_columns':
                 return $this->getExcelColumns($input);
+            case 'get_hierarchylevel_1':
+                return $this->getHierarchyLevel1($input, $type);
             case 'bulk_insert_asset_data':
                 return $this->insertBulkAssetData($input, $type);
             default:
@@ -50,6 +52,13 @@ class AssetController
         // get columns of an excel file from rawfile mapping
         $rawMapping = isset($input['rawfile_mapping']) ? json_decode($input['rawfile_mapping'], true) : [];
         return $this->model->getExcelColumns($rawMapping);
+    }
+
+    private function getHierarchyLevel1($input, $type)
+    { 
+        // get table data - from app_fd_asset_hierarchy - level 1 (column: asset_name)
+        $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
+        return $this->model->getHierarchyLevel1($table, $type);
     }
 
     private function insertBulkAssetData($input, $type)
