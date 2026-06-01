@@ -92,6 +92,7 @@ class AssetController
         $bimData        = json_decode($input["bim_results"], true);
         $createdBy      = $input["createdBy"];
         $createdByName  = $input["createdByName"];
+        $hierarchy_level_1 = $input["hierarchy_level_1"];
 
         if (!is_array($rows) || empty($rows)) {
             logMessage("Invalid rows", "error");
@@ -107,7 +108,8 @@ class AssetController
             $bimData,
             $createdBy,
             $createdByName,
-            $type
+            $type,
+            $hierarchy_level_1
         );
 
         logMessage("Bulk insert finished", "info", [

@@ -218,7 +218,7 @@ class AssetModel
         ];
     }
 
-    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
+    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type, $hierarchy_level_1) 
     {
         // Log start of bulk insert
         logMessage("Bulk insert started", "info", [
@@ -280,6 +280,8 @@ class AssetModel
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
 
+            //asset hierarchy - level 1
+            $row['c_asset_name'] = $hierarchy_level_1;
 
             // Check for required fields
             $requiredFields = [];
