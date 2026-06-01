@@ -141,7 +141,7 @@ class AssetModel
             'c_parent_code',
             'c_status',
             'c_asset_name', //value for this is from hierarchy_level_1
-            'c_asset_code' //auto update based selected hierarchy_level_1 (pending)
+            'c_asset_code' //manual input by user
         ];
 
         if ($type === 'cobie') {
