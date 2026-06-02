@@ -140,8 +140,8 @@ class AssetModel
             'c_parent_id',
             'c_parent_code',
             'c_status',
-            //'c_asset_name', //value for this is the hierarchy level 1 (asset_name)
             //manual input by user
+            'c_asset_name',
             'c_asset_code', 
             'c_sub_asset_code',
             'c_sub_asset_name',
