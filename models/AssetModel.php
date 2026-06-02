@@ -140,8 +140,15 @@ class AssetModel
             'c_parent_id',
             'c_parent_code',
             'c_status',
-            //'c_asset_name', //value for this is from hierarchy_level_1
-            'c_asset_code' //manual input by user
+            //'c_asset_name', //value for this is the hierarchy level 1 (asset_name)
+            //manual input by user
+            'c_asset_code', 
+            'c_sub_asset_code',
+            'c_sub_asset_name',
+            'c_sub_category_code',
+            'c_type_asset_code',
+            'c_type_asset_name',
+            'c_category_code',  
         ];
 
         if ($type === 'cobie') {
@@ -220,7 +227,7 @@ class AssetModel
         ];
     }
 
-    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type, $hierarchy_level_1) 
+    public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
         // Log start of bulk insert
         logMessage("Bulk insert started", "info", [
@@ -281,9 +288,6 @@ class AssetModel
 
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
-
-            //asset hierarchy - level 1
-            $row['c_asset_name'] = $hierarchy_level_1;
 
             // Check for required fields
             $requiredFields = [];
