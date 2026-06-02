@@ -229,6 +229,16 @@ class AssetModel
 
     public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
+
+        echo '<pre>';
+
+        echo "FIRST ROW\n";
+        print_r($rows[0]);
+
+        echo "\n\nALL KEYS\n";
+        print_r(array_keys($rows[0]));
+
+        exit;
         // Log start of bulk insert
         logMessage("Bulk insert started", "info", [
             "table" => $assetTable,
