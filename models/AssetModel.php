@@ -502,27 +502,142 @@ class AssetModel
     {
         try {
 
-            $sql = "
-                UPDATE app_fd_asset_hierarchy
-                SET
-                    c_asset_name = ?
-                WHERE id = ?
-            ";
-
-            $stmt = $this->conn->prepare($sql);
-
             foreach ($mappings as $mapping)
             {
-                $assetName = $mapping['level1_name'];
-                $id = $mapping['id'];
+                $currentId = $mapping['id'];
 
-                $stmt->bind_param(
-                    "ss",
-                    $assetName,
-                    $id
+                // Get current record
+                $stmtCurrent = $this->conn->prepare("
+                    SELECT
+                        c_item_no,
+                        c_level
+                    FROM app_fd_asset_hierarchy
+                    WHERE id = ?
+                ");
+
+                $stmtCurrent->bind_param(
+                    "s",
+                    $currentId
                 );
 
-                $stmt->execute();
+                $stmtCurrent->execute();
+
+                $current = $stmtCurrent
+                    ->get_result()
+                    ->fetch_assoc();
+
+                $newItemNo = null;
+                $newLevel  = null;
+
+                // Determine deepest selected hierarchy
+                $parentId = null;
+
+                if (!empty($mapping['level4_id'])) {
+                    $parentId = $mapping['level4_id'];
+                }
+                elseif (!empty($mapping['level3_id'])) {
+                    $parentId = $mapping['level3_id'];
+                }
+                elseif (!empty($mapping['level2_id'])) {
+                    $parentId = $mapping['level2_id'];
+                }
+
+                if (!$parentId) {
+                    continue;
+                }
+
+                // Get selected hierarchy record
+                $stmtParent = $this->conn->prepare("
+                    SELECT
+                        c_item_no,
+                        c_level
+                    FROM app_fd_asset_hierarchy
+                    WHERE id = ?
+                ");
+
+                $stmtParent->bind_param(
+                    "s",
+                    $parentId
+                );
+
+                $stmtParent->execute();
+
+                $parent = $stmtParent
+                    ->get_result()
+                    ->fetch_assoc();
+
+                if (!$parent) {
+                    continue;
+                }
+
+                
+                //ITEM NO
+
+                if (!empty($current['c_item_no'])) {
+
+                    $newItemNo = $current['c_item_no'];
+
+                } else {
+
+                    $newItemNo =
+                        $parent['c_item_no'] . '.1';
+                }
+
+                
+                //LEVEL
+
+                $currentLevel = $current['c_level'];
+
+                if (
+                    is_numeric($currentLevel)
+                    && (int)$currentLevel > 0
+                ) {
+
+                    $newLevel = (int)$currentLevel;
+
+                } else {
+
+                    $parentLevel = $parent['c_level'];
+
+                    if (
+                        !is_numeric($parentLevel)
+                        || empty($parentLevel)
+                    ) {
+                        $parentLevel = 1;
+                    }
+
+                    $newLevel =
+                        (int)$parentLevel + 1;
+                }
+
+                
+                //UPDATE
+                
+
+                $stmtUpdate = $this->conn->prepare("
+                    UPDATE app_fd_asset_hierarchy
+                    SET
+                        c_item_no = ?,
+                        c_level = ?,
+                        c_level1_id = ?,
+                        c_level2_id = ?,
+                        c_level3_id = ?,
+                        c_level4_id = ?
+                    WHERE id = ?
+                ");
+
+                $stmtUpdate->bind_param(
+                    "sisssss",
+                    $newItemNo,
+                    $newLevel,
+                    $mapping['level1_id'],
+                    $mapping['level2_id'],
+                    $mapping['level3_id'],
+                    $mapping['level4_id'],
+                    $currentId
+                );
+
+                $stmtUpdate->execute();
             }
 
             return true;
