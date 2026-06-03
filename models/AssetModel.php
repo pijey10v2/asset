@@ -507,7 +507,7 @@ class AssetModel
             $sql = "
                 UPDATE app_fd_asset_hierarchy
                 SET
-                    c_asset_name = :level1
+                    c_asset_name = :level1_name
                 WHERE id = :id
             ";
 
@@ -516,11 +516,8 @@ class AssetModel
             foreach ($mappings as $mapping)
             {
                 $stmt->execute([
-                    ':level1' => $mapping['level1'] ?? null,
-                    // ':level2' => $mapping['level2'] ?? null,
-                    // ':level3' => $mapping['level3'] ?? null,
-                    // ':level4' => $mapping['level4'] ?? null,
-                    ':id'     => $mapping['id']
+                    ':level1_name' => $mapping['level1_name'] ?? null,
+                    ':id'          => $mapping['id']
                 ]);
             }
 
@@ -528,13 +525,16 @@ class AssetModel
 
         } catch (Exception $e) {
 
-            logMessage(
+             logMessage(
                 'updateHierarchyMapping: ' .
                 $e->getMessage(),
                 'error'
             );
 
-            return false;
+            return [
+                'error' => true,
+                'message' => $e->getMessage()
+            ];
         }
     }
 

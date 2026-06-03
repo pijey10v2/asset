@@ -152,9 +152,10 @@ class AssetController
         );
 
         return [
-            'status' => 'success',
+            'status' => $updated ? 'success' : 'error',
             'updated_rows' => count($mappings),
-            'result' => $updated
+            'result' => $updated,
+            'received' => count($mappings)
         ];
     }
 
