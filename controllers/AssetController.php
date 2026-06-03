@@ -22,6 +22,8 @@ class AssetController
                 return $this->getExcelColumns($input);
             case 'get_hierarchylevel_1':
                 return $this->getHierarchyLevel1($input, $type);
+            case 'get_asset_hierarchy':
+                return $this->getAssetHierarchy($input, $type);
             case 'bulk_insert_asset_data':
                 return $this->insertBulkAssetData($input, $type);
             default:
@@ -59,6 +61,13 @@ class AssetController
         // get table data - from app_fd_asset_hierarchy - level 1 (column: asset_name)
         $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
         return $this->model->getHierarchyLevel1($table, $type);
+    }
+
+    private function getAssetHierarchy($input, $type)
+    { 
+        // get table data - from app_fd_asset_hierarchy
+        $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
+        return $this->model->getAssetHierarchy($table, $type);
     }
 
     private function insertBulkAssetData($input, $type)
