@@ -497,4 +497,45 @@ class AssetModel
         ];
     }
 
+    public function updateHierarchyMapping($mappings)
+    {
+        try {
+            // c_level1_id = :level1,
+            // c_level2_id = :level2,
+            // c_level3_id = :level3,
+            // c_level4_id = :level4
+            $sql = "
+                UPDATE app_fd_asset_hierarchy
+                SET
+                    c_asset_name = :level1,
+                WHERE id = :id
+            ";
+
+            $stmt = $this->conn->prepare($sql);
+
+            foreach ($mappings as $mapping)
+            {
+                $stmt->execute([
+                    ':level1' => $mapping['level1'] ?? null,
+                    // ':level2' => $mapping['level2'] ?? null,
+                    // ':level3' => $mapping['level3'] ?? null,
+                    // ':level4' => $mapping['level4'] ?? null,
+                    ':id'     => $mapping['id']
+                ]);
+            }
+
+            return true;
+
+        } catch (Exception $e) {
+
+            logMessage(
+                'updateHierarchyMapping: ' .
+                $e->getMessage(),
+                'error'
+            );
+
+            return false;
+        }
+    }
+
 }

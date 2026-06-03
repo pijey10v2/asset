@@ -24,6 +24,8 @@ class AssetController
                 return $this->getHierarchyLevel1($input, $type);
             case 'get_asset_hierarchy':
                 return $this->getAssetHierarchy($input, $type);
+            case 'update_hierarchy_mapping':
+                return $this->updateHierarchyMapping($input);
             case 'bulk_insert_asset_data':
                 return $this->insertBulkAssetData($input, $type);
             default:
@@ -124,6 +126,36 @@ class AssetController
         ]);
     }
 
+    private function updateHierarchyMapping($input)
+    {
+        if (empty($input['mappings'])) {
+            return [
+                'status' => 'error',
+                'message' => 'Missing mappings'
+            ];
+        }
 
+        $mappings = json_decode(
+            $input['mappings'],
+            true
+        );
+
+        if (!is_array($mappings)) {
+            return [
+                'status' => 'error',
+                'message' => 'Invalid mappings payload'
+            ];
+        }
+
+        $updated = $this->model->updateHierarchyMapping(
+            $mappings
+        );
+
+        return [
+            'status' => 'success',
+            'updated_rows' => count($mappings),
+            'result' => $updated
+        ];
+    }
 
 }
