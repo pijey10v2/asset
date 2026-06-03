@@ -202,7 +202,7 @@ class AssetModel
             ];
         }
 
-        $sql = "SELECT c_asset_name FROM `$table` ORDER BY c_asset_name";
+        $sql = "SELECT id, c_asset_name FROM `$table` ORDER BY c_asset_name";
         $result = $this->conn->query($sql);
 
         if (!$result) {
@@ -216,8 +216,8 @@ class AssetModel
 
         while ($row = $result->fetch_assoc()) {
             $hierarchies[] = [
-                "label" => $row['c_asset_name'],
-                "value" => $row['c_asset_name']
+                "id" => $row['id'],
+                "c_asset_name" => $row['c_asset_name']
             ];
         }
 
