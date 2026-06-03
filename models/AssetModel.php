@@ -202,7 +202,8 @@ class AssetModel
             ];
         }
 
-        $sql = "SELECT id, c_asset_name FROM `$table` ORDER BY c_asset_name";
+        $sql = "SELECT id, c_asset_name FROM `$table` WHERE c_asset_name IS NOT NULL
+        OR TRIM(c_asset_name) <> '' ORDER BY c_asset_name";
         $result = $this->conn->query($sql);
 
         if (!$result) {
