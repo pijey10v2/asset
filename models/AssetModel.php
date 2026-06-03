@@ -500,32 +500,35 @@ class AssetModel
     public function updateHierarchyMapping($mappings)
     {
         try {
-            // c_level1_id = :level1,
-            // c_level2_id = :level2,
-            // c_level3_id = :level3,
-            // c_level4_id = :level4
+
             $sql = "
                 UPDATE app_fd_asset_hierarchy
                 SET
-                    c_asset_name = :level1_name
-                WHERE id = :id
+                    c_asset_name = ?
+                WHERE id = ?
             ";
 
             $stmt = $this->conn->prepare($sql);
 
             foreach ($mappings as $mapping)
             {
-                $stmt->execute([
-                    ':level1_name' => $mapping['level1_name'] ?? null,
-                    ':id'          => $mapping['id']
-                ]);
+                $assetName = $mapping['level1_name'];
+                $id = $mapping['id'];
+
+                $stmt->bind_param(
+                    "ss",
+                    $assetName,
+                    $id
+                );
+
+                $stmt->execute();
             }
 
             return true;
 
         } catch (Exception $e) {
 
-             logMessage(
+            logMessage(
                 'updateHierarchyMapping: ' .
                 $e->getMessage(),
                 'error'
