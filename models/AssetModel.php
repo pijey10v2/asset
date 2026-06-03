@@ -149,6 +149,11 @@ class AssetModel
             'c_type_asset_code',
             'c_type_asset_name',
             'c_category_code',  
+            //additional for hierarchy
+            'c_level1_id',
+            'c_level2_id',
+            'c_level3_id',
+            'c_level4_id',
         ];
 
         if ($type === 'cobie') {
