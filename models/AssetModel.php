@@ -507,7 +507,7 @@ class AssetModel
             $sql = "
                 UPDATE app_fd_asset_hierarchy
                 SET
-                    c_asset_name = :level1,
+                    c_asset_name = :level1
                 WHERE id = :id
             ";
 
