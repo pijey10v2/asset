@@ -553,13 +553,20 @@ class AssetModel
                 $parentId = null;
 
                 if (!empty($mapping['level4_id'])) {
+
                     $parentId = $mapping['level4_id'];
-                }
-                elseif (!empty($mapping['level3_id'])) {
+
+                } elseif (!empty($mapping['level3_id'])) {
+
                     $parentId = $mapping['level3_id'];
-                }
-                elseif (!empty($mapping['level2_id'])) {
+
+                } elseif (!empty($mapping['level2_id'])) {
+
                     $parentId = $mapping['level2_id'];
+
+                } elseif (!empty($mapping['level1_id'])) {
+
+                    $parentId = $mapping['level1_id'];
                 }
 
                 if (!$parentId) {
@@ -641,6 +648,7 @@ class AssetModel
                     SET
                         c_item_no = ?,
                         c_level = ?,
+                        c_parent_id = ?,
                         c_level1_id = ?,
                         c_level2_id = ?,
                         c_level3_id = ?,
@@ -662,9 +670,10 @@ class AssetModel
                 $level4Id = $mapping['level4_id'] ?? null;
 
                 $stmtUpdate->bind_param(
-                    "sisssss",
+                    "sissssss",
                     $newItemNo,
                     $newLevel,
+                    $parentId,
                     $level1Id,
                     $level2Id,
                     $level3Id,
