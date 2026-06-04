@@ -505,22 +505,15 @@ class AssetModel
 
     public function updateHierarchyMapping($mappings)
     {
-        logMessage(
-            json_encode($mappings),
-            'info'
-        );
-
         try {
 
             $updatedRows = 0;
-            $skippedRows = 0;
 
             foreach ($mappings as $mapping)
             {
                 $currentId = $mapping['id'] ?? null;
 
                 if (empty($currentId)) {
-                    $skippedRows++;
                     continue;
                 }
 
@@ -543,22 +536,16 @@ class AssetModel
 
                 $stmtCurrent->execute();
 
-                $resultCurrent = $stmtCurrent->get_result();
+                $currentItemNo = null;
+                $currentLevel = null;
 
-                $current = $resultCurrent
-                    ? $resultCurrent->fetch_assoc()
-                    : null;
+                $stmtCurrent->bind_result(
+                    $currentItemNo,
+                    $currentLevel
+                );
 
-                if (!$current) {
-
-                    logMessage(
-                        "Current record not found: {$currentId}",
-                        "warning"
-                    );
-
-                    $skippedRows++;
-                    continue;
-                }
+                $stmtCurrent->fetch();
+                $stmtCurrent->close();
 
                 
                 //Determine Parent
@@ -576,13 +563,6 @@ class AssetModel
                 }
 
                 if (!$parentId) {
-
-                    logMessage(
-                        "No parent selected for ID: {$currentId}",
-                        "info"
-                    );
-
-                    $skippedRows++;
                     continue;
                 }
 
@@ -605,41 +585,27 @@ class AssetModel
 
                 $stmtParent->execute();
 
-                $resultParent = $stmtParent->get_result();
+                $parentItemNo = null;
+                $parentLevel = null;
 
-                $parent = $resultParent
-                    ? $resultParent->fetch_assoc()
-                    : null;
+                $stmtParent->bind_result(
+                    $parentItemNo,
+                    $parentLevel
+                );
 
-                if (!$parent) {
-
-                    logMessage(
-                        "Parent record not found: {$parentId}",
-                        "warning"
-                    );
-
-                    $skippedRows++;
-                    continue;
-                }
+                $stmtParent->fetch();
+                $stmtParent->close();
 
                 
                 //Generate Item No
                 
-                $parentItemNo = trim(
-                    $parent['c_item_no'] ?? ''
-                );
-
-                $currentItemNo = trim(
-                    $current['c_item_no'] ?? ''
-                );
-
-                if ($currentItemNo !== '') {
+                if (!empty($currentItemNo)) {
 
                     $newItemNo = $currentItemNo;
 
                 } else {
 
-                    $newItemNo = $parentItemNo !== ''
+                    $newItemNo = !empty($parentItemNo)
                         ? $parentItemNo . '.1'
                         : '1';
                 }
@@ -647,8 +613,6 @@ class AssetModel
                 
                 //Generate Level
                 
-                $currentLevel = $current['c_level'] ?? null;
-
                 if (
                     is_numeric($currentLevel)
                     && (int)$currentLevel > 0
@@ -658,11 +622,9 @@ class AssetModel
 
                 } else {
 
-                    $parentLevel = $parent['c_level'] ?? 1;
-
                     if (
                         !is_numeric($parentLevel)
-                        || (int)$parentLevel <= 0
+                        || empty($parentLevel)
                     ) {
                         $parentLevel = 1;
                     }
@@ -672,7 +634,7 @@ class AssetModel
                 }
 
                 
-                //Update Record
+                //Update
                 
                 $stmtUpdate = $this->conn->prepare("
                     UPDATE app_fd_asset_hierarchy
@@ -712,23 +674,28 @@ class AssetModel
 
                 if (!$stmtUpdate->execute()) {
 
-                    logMessage(
-                        "Update failed for {$currentId}: "
-                        . $stmtUpdate->error,
-                        'error'
-                    );
-
-                    $skippedRows++;
-                    continue;
+                    return [
+                        'status' => 'error',
+                        'message' => $stmtUpdate->error
+                    ];
                 }
+
+                $stmtUpdate->close();
 
                 $updatedRows++;
             }
 
+            logMessage(
+                json_encode([
+                    'updated_rows' => $updatedRows,
+                    'received_rows' => count($mappings)
+                ]),
+                'info'
+            );
+
             return [
                 'status' => 'success',
                 'updated_rows' => $updatedRows,
-                'skipped_rows' => $skippedRows,
                 'received_rows' => count($mappings)
             ];
 
