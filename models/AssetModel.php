@@ -560,6 +560,12 @@ class AssetModel
                 }
 
                 if (!$parentId) {
+
+                    logMessage(
+                        "No parent selected for ID: {$currentId}",
+                        "info"
+                    );
+
                     continue;
                 }
 
@@ -661,7 +667,8 @@ class AssetModel
 
             return [
                 'status' => 'success',
-                'updated_rows' => $updatedRows
+                'updated_rows' => $updatedRows,
+                'received_rows' => count($mappings)
             ];
 
         } catch (Throwable $e) {
