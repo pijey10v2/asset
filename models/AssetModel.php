@@ -311,30 +311,6 @@ class AssetModel
 
         $filteredRows = []; // will store only valid rows
 
-        // Generate c_item_no hierarchy numbering
-        // Get latest root item number from DB
-        $lastParentNo = 0;
-
-        $sqlLatestParent = "
-            SELECT c_item_no
-            FROM `$assetTable`
-            WHERE c_item_no REGEXP '^[0-9]+$'
-            ORDER BY CAST(c_item_no AS UNSIGNED) DESC
-            LIMIT 1
-        ";
-
-        $resultLatestParent = $this->conn->query($sqlLatestParent);
-
-        if (
-            $resultLatestParent &&
-            $latestRow = $resultLatestParent->fetch_assoc()
-        ) {
-            $lastParentNo = (int)$latestRow['c_item_no'];
-        }
-
-        // Track hierarchy counters
-        $levelCounters = [];
-
         foreach ($rows as &$row) {
 
             $row['id'] = generateUUIDv4();
@@ -390,49 +366,6 @@ class AssetModel
                 if (!isset($existingColumns[$col])) {
                     $missingColumns[$col] = true;
                 }
-            }
-
-            // Generate c_item_no
-            $level = (int)($row['c_level'] ?? 1);
-
-            if ($level <= 1) {
-
-                // New parent
-                $lastParentNo++;
-
-                $levelCounters = [
-                    1 => $lastParentNo
-                ];
-
-                $row['c_item_no'] = (string)$lastParentNo;
-
-            } else {
-
-                if (!isset($levelCounters[$level])) {
-                    $levelCounters[$level] = 0;
-                }
-
-                $levelCounters[$level]++;
-
-                // Remove deeper levels when moving up
-                foreach (array_keys($levelCounters) as $existingLevel) {
-                    if ($existingLevel > $level) {
-                        unset($levelCounters[$existingLevel]);
-                    }
-                }
-
-                $parts = [];
-
-                for ($i = 1; $i <= $level; $i++) {
-
-                    if ($i === 1) {
-                        $parts[] = $levelCounters[1];
-                    } else {
-                        $parts[] = $levelCounters[$i];
-                    }
-                }
-
-                $row['c_item_no'] = implode('.', $parts);
             }
 
         }
