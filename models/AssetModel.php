@@ -505,36 +505,48 @@ class AssetModel
 
     public function updateHierarchyMapping($mappings)
     {
+        logMessage(
+            json_encode($mappings),
+            'info'
+        );
         try {
+
+            $updatedRows = 0;
 
             foreach ($mappings as $mapping)
             {
-                $currentId = $mapping['id'];
+                $currentId = $mapping['id'] ?? null;
 
-                // Get current record
-                $stmtCurrent = $this->conn->prepare("
+                if (empty($currentId)) {
+                    continue;
+                }
+
+                
+                //Get Current Record
+                
+                $sql = "
                     SELECT
                         c_item_no,
                         c_level
                     FROM app_fd_asset_hierarchy
-                    WHERE id = ?
-                ");
+                    WHERE id = '{$currentId}'
+                    LIMIT 1
+                ";
 
-                $stmtCurrent->bind_param(
-                    "s",
-                    $currentId
-                );
+                $result = $this->conn->query($sql);
 
-                $stmtCurrent->execute();
+                if (!$result) {
+                    return [
+                        'error' => true,
+                        'message' => $this->conn->error
+                    ];
+                }
 
-                $current = $stmtCurrent
-                    ->get_result()
-                    ->fetch_assoc();
+                $current = $result->fetch_assoc();
 
-                $newItemNo = null;
-                $newLevel  = null;
-
-                // Determine deepest selected hierarchy
+                
+                //Determine Parent
+                
                 $parentId = null;
 
                 if (!empty($mapping['level4_id'])) {
@@ -551,47 +563,41 @@ class AssetModel
                     continue;
                 }
 
-                // Get selected hierarchy record
-                $stmtParent = $this->conn->prepare("
+                //Get Parent Record
+                
+                $sql = "
                     SELECT
                         c_item_no,
                         c_level
                     FROM app_fd_asset_hierarchy
-                    WHERE id = ?
-                ");
+                    WHERE id = '{$parentId}'
+                    LIMIT 1
+                ";
 
-                $stmtParent->bind_param(
-                    "s",
-                    $parentId
-                );
+                $result = $this->conn->query($sql);
 
-                $stmtParent->execute();
+                if (!$result) {
+                    return [
+                        'error' => true,
+                        'message' => $this->conn->error
+                    ];
+                }
 
-                $parent = $stmtParent
-                    ->get_result()
-                    ->fetch_assoc();
+                $parent = $result->fetch_assoc();
 
                 if (!$parent) {
                     continue;
                 }
 
+                //Generate Item No
                 
-                //ITEM NO
+                $newItemNo = !empty($current['c_item_no'])
+                    ? $current['c_item_no']
+                    : ($parent['c_item_no'] . '.1');
 
-                if (!empty($current['c_item_no'])) {
-
-                    $newItemNo = $current['c_item_no'];
-
-                } else {
-
-                    $newItemNo =
-                        $parent['c_item_no'] . '.1';
-                }
-
+                //Generate Level
                 
-                //LEVEL
-
-                $currentLevel = $current['c_level'];
+                $currentLevel = $current['c_level'] ?? null;
 
                 if (
                     is_numeric($currentLevel)
@@ -602,24 +608,18 @@ class AssetModel
 
                 } else {
 
-                    $parentLevel = $parent['c_level'];
+                    $parentLevel = $parent['c_level'] ?? 1;
 
-                    if (
-                        !is_numeric($parentLevel)
-                        || empty($parentLevel)
-                    ) {
+                    if (!is_numeric($parentLevel)) {
                         $parentLevel = 1;
                     }
 
-                    $newLevel =
-                        (int)$parentLevel + 1;
+                    $newLevel = (int)$parentLevel + 1;
                 }
 
+                //Update
                 
-                //UPDATE
-                
-
-                $stmtUpdate = $this->conn->prepare("
+                $stmt = $this->conn->prepare("
                     UPDATE app_fd_asset_hierarchy
                     SET
                         c_item_no = ?,
@@ -631,23 +631,40 @@ class AssetModel
                     WHERE id = ?
                 ");
 
-                $stmtUpdate->bind_param(
+                if (!$stmt) {
+                    return [
+                        'error' => true,
+                        'message' => $this->conn->error
+                    ];
+                }
+
+                $level1Id = $mapping['level1_id'] ?? null;
+                $level2Id = $mapping['level2_id'] ?? null;
+                $level3Id = $mapping['level3_id'] ?? null;
+                $level4Id = $mapping['level4_id'] ?? null;
+
+                $stmt->bind_param(
                     "sisssss",
                     $newItemNo,
                     $newLevel,
-                    $mapping['level1_id'],
-                    $mapping['level2_id'],
-                    $mapping['level3_id'],
-                    $mapping['level4_id'],
+                    $level1Id,
+                    $level2Id,
+                    $level3Id,
+                    $level4Id,
                     $currentId
                 );
 
-                $stmtUpdate->execute();
+                $stmt->execute();
+
+                $updatedRows++;
             }
 
-            return true;
+            return [
+                'status' => 'success',
+                'updated_rows' => $updatedRows
+            ];
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
 
             logMessage(
                 'updateHierarchyMapping: ' .
@@ -656,7 +673,7 @@ class AssetModel
             );
 
             return [
-                'error' => true,
+                'status' => 'error',
                 'message' => $e->getMessage()
             ];
         }
