@@ -606,16 +606,31 @@ class AssetModel
                 
                 //Generate Item No
                 
-                if (!empty($currentItemNo)) {
+                $stmtNext = $this->conn->prepare("
+                    SELECT COUNT(*) + 1
+                    FROM app_fd_asset_hierarchy
+                    WHERE c_parent_id = ?
+                ");
 
-                    $newItemNo = $currentItemNo;
+                $stmtNext->bind_param(
+                    "s",
+                    $parentId
+                );
 
-                } else {
+                $stmtNext->execute();
 
-                    $newItemNo = !empty($parentItemNo)
-                        ? $parentItemNo . '.1'
-                        : '1';
-                }
+                $stmtNext->bind_result(
+                    $nextChildNo
+                );
+
+                $stmtNext->fetch();
+                $stmtNext->close();
+
+                $newItemNo =
+                    $parentItemNo . '.' . $nextChildNo;
+
+                $newLevel =
+                    substr_count($newItemNo, '.') + 1;
 
                 
                 //Generate Level
