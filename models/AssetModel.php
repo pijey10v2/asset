@@ -266,6 +266,39 @@ class AssetModel
         ];
     }
 
+    public function getAssetHierarchyAll($table, $type)
+    {
+        // Verify that table exists
+        if (!$this->tableExists($table)) {
+            return [
+                "status" => "error",
+                "message" => "Table '$table' does not exist."
+            ];
+        }
+
+        //select all data without condition
+        $sql = "SELECT * FROM `$table` ORDER BY c_asset_name ASC";
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return [
+                "status" => "error",
+                "message" => $this->conn->error
+            ];
+        }
+
+        $assets = [];
+
+        while ($row = $result->fetch_assoc()) {
+            $assets[] = $row;
+        }
+
+        return [
+            "status" => "success",
+            "assets" => $assets
+        ];
+    }
+
     public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
         // Log start of bulk insert
