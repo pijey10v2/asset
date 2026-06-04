@@ -518,38 +518,9 @@ class AssetModel
                 }
 
                 
-                //Get Current Record
-                
-                $stmtCurrent = $this->conn->prepare("
-                    SELECT
-                        c_item_no,
-                        c_level
-                    FROM app_fd_asset_hierarchy
-                    WHERE id = ?
-                    LIMIT 1
-                ");
-
-                $stmtCurrent->bind_param(
-                    "s",
-                    $currentId
-                );
-
-                $stmtCurrent->execute();
-
-                $currentItemNo = null;
-                $currentLevel = null;
-
-                $stmtCurrent->bind_result(
-                    $currentItemNo,
-                    $currentLevel
-                );
-
-                $stmtCurrent->fetch();
-                $stmtCurrent->close();
-
-                
                 //Determine Parent
                 
+
                 $parentId = null;
 
                 if (!empty($mapping['level4_id'])) {
@@ -569,13 +540,14 @@ class AssetModel
                     $parentId = $mapping['level1_id'];
                 }
 
-                if (!$parentId) {
+                if (empty($parentId)) {
                     continue;
                 }
 
                 
-                //Get Parent Record
+                //Get Parent Item No
                 
+
                 $stmtParent = $this->conn->prepare("
                     SELECT
                         c_item_no,
@@ -585,6 +557,13 @@ class AssetModel
                     LIMIT 1
                 ");
 
+                if (!$stmtParent) {
+                    return [
+                        'status' => 'error',
+                        'message' => $this->conn->error
+                    ];
+                }
+
                 $stmtParent->bind_param(
                     "s",
                     $parentId
@@ -593,7 +572,7 @@ class AssetModel
                 $stmtParent->execute();
 
                 $parentItemNo = null;
-                $parentLevel = null;
+                $parentLevel  = null;
 
                 $stmtParent->bind_result(
                     $parentItemNo,
@@ -603,57 +582,88 @@ class AssetModel
                 $stmtParent->fetch();
                 $stmtParent->close();
 
+                if (empty($parentItemNo)) {
+
+                    $parentItemNo = '1';
+                }
+
                 
-                //Generate Item No
+                //Get Last Child Under Parent
                 
-                $stmtNext = $this->conn->prepare("
-                    SELECT COUNT(*) + 1
+
+                $stmtLastChild = $this->conn->prepare("
+                    SELECT c_item_no
                     FROM app_fd_asset_hierarchy
                     WHERE c_parent_id = ?
+                    AND c_item_no IS NOT NULL
+                    AND TRIM(c_item_no) <> ''
+                    ORDER BY LENGTH(c_item_no) DESC,
+                            c_item_no DESC
+                    LIMIT 1
                 ");
 
-                $stmtNext->bind_param(
+                if (!$stmtLastChild) {
+                    return [
+                        'status' => 'error',
+                        'message' => $this->conn->error
+                    ];
+                }
+
+                $stmtLastChild->bind_param(
                     "s",
                     $parentId
                 );
 
-                $stmtNext->execute();
+                $stmtLastChild->execute();
 
-                $stmtNext->bind_result(
-                    $nextChildNo
+                $lastItemNo = null;
+
+                $stmtLastChild->bind_result(
+                    $lastItemNo
                 );
 
-                $stmtNext->fetch();
-                $stmtNext->close();
+                $stmtLastChild->fetch();
+                $stmtLastChild->close();
+
+                
+                //Generate New Item No
+                
+
+                if (empty($lastItemNo))
+                {
+                    $childSequence = 1;
+                }
+                else
+                {
+                    $parts = explode(
+                        '.',
+                        $lastItemNo
+                    );
+
+                    $lastSegment = end($parts);
+
+                    $childSequence =
+                        ((int)$lastSegment) + 1;
+
+                    if ($childSequence < 1) {
+                        $childSequence = 1;
+                    }
+                }
 
                 $newItemNo =
-                    $parentItemNo . '.' . $nextChildNo;
-
-                $newLevel =
-                    substr_count($newItemNo, '.') + 1;
+                    $parentItemNo .
+                    '.' .
+                    $childSequence;
 
                 
                 //Generate Level
                 
-                if (
-                    is_numeric($currentLevel)
-                    && (int)$currentLevel > 0
-                ) {
 
-                    $newLevel = (int)$currentLevel;
-
-                } else {
-
-                    if (
-                        !is_numeric($parentLevel)
-                        || empty($parentLevel)
-                    ) {
-                        $parentLevel = 1;
-                    }
-
-                    $newLevel =
-                        (int)$parentLevel + 1;
-                }
+                $newLevel =
+                    substr_count(
+                        $newItemNo,
+                        '.'
+                    ) + 1;
 
                 
                 //Update
