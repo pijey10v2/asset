@@ -509,40 +509,56 @@ class AssetModel
             json_encode($mappings),
             'info'
         );
+
         try {
 
             $updatedRows = 0;
+            $skippedRows = 0;
 
             foreach ($mappings as $mapping)
             {
                 $currentId = $mapping['id'] ?? null;
 
                 if (empty($currentId)) {
+                    $skippedRows++;
                     continue;
                 }
 
                 
                 //Get Current Record
                 
-                $sql = "
+                $stmtCurrent = $this->conn->prepare("
                     SELECT
                         c_item_no,
                         c_level
                     FROM app_fd_asset_hierarchy
-                    WHERE id = '{$currentId}'
+                    WHERE id = ?
                     LIMIT 1
-                ";
+                ");
 
-                $result = $this->conn->query($sql);
+                $stmtCurrent->bind_param(
+                    "s",
+                    $currentId
+                );
 
-                if (!$result) {
-                    return [
-                        'error' => true,
-                        'message' => $this->conn->error
-                    ];
+                $stmtCurrent->execute();
+
+                $resultCurrent = $stmtCurrent->get_result();
+
+                $current = $resultCurrent
+                    ? $resultCurrent->fetch_assoc()
+                    : null;
+
+                if (!$current) {
+
+                    logMessage(
+                        "Current record not found: {$currentId}",
+                        "warning"
+                    );
+
+                    $skippedRows++;
+                    continue;
                 }
-
-                $current = $result->fetch_assoc();
 
                 
                 //Determine Parent
@@ -566,41 +582,69 @@ class AssetModel
                         "info"
                     );
 
+                    $skippedRows++;
                     continue;
                 }
 
+                
                 //Get Parent Record
                 
-                $sql = "
+                $stmtParent = $this->conn->prepare("
                     SELECT
                         c_item_no,
                         c_level
                     FROM app_fd_asset_hierarchy
-                    WHERE id = '{$parentId}'
+                    WHERE id = ?
                     LIMIT 1
-                ";
+                ");
 
-                $result = $this->conn->query($sql);
+                $stmtParent->bind_param(
+                    "s",
+                    $parentId
+                );
 
-                if (!$result) {
-                    return [
-                        'error' => true,
-                        'message' => $this->conn->error
-                    ];
-                }
+                $stmtParent->execute();
 
-                $parent = $result->fetch_assoc();
+                $resultParent = $stmtParent->get_result();
+
+                $parent = $resultParent
+                    ? $resultParent->fetch_assoc()
+                    : null;
 
                 if (!$parent) {
+
+                    logMessage(
+                        "Parent record not found: {$parentId}",
+                        "warning"
+                    );
+
+                    $skippedRows++;
                     continue;
                 }
 
+                
                 //Generate Item No
                 
-                $newItemNo = !empty($current['c_item_no'])
-                    ? $current['c_item_no']
-                    : ($parent['c_item_no'] . '.1');
+                $parentItemNo = trim(
+                    $parent['c_item_no'] ?? ''
+                );
 
+                $currentItemNo = trim(
+                    $current['c_item_no'] ?? ''
+                );
+
+                if ($currentItemNo !== '') {
+
+                    $newItemNo = $currentItemNo;
+
+                } else {
+
+                    $newItemNo = $parentItemNo !== ''
+                        ? $parentItemNo . '.1'
+                        : '1';
+                }
+
+                
                 //Generate Level
                 
                 $currentLevel = $current['c_level'] ?? null;
@@ -616,16 +660,21 @@ class AssetModel
 
                     $parentLevel = $parent['c_level'] ?? 1;
 
-                    if (!is_numeric($parentLevel)) {
+                    if (
+                        !is_numeric($parentLevel)
+                        || (int)$parentLevel <= 0
+                    ) {
                         $parentLevel = 1;
                     }
 
-                    $newLevel = (int)$parentLevel + 1;
+                    $newLevel =
+                        (int)$parentLevel + 1;
                 }
 
-                //Update
                 
-                $stmt = $this->conn->prepare("
+                //Update Record
+                
+                $stmtUpdate = $this->conn->prepare("
                     UPDATE app_fd_asset_hierarchy
                     SET
                         c_item_no = ?,
@@ -637,9 +686,10 @@ class AssetModel
                     WHERE id = ?
                 ");
 
-                if (!$stmt) {
+                if (!$stmtUpdate) {
+
                     return [
-                        'error' => true,
+                        'status' => 'error',
                         'message' => $this->conn->error
                     ];
                 }
@@ -649,7 +699,7 @@ class AssetModel
                 $level3Id = $mapping['level3_id'] ?? null;
                 $level4Id = $mapping['level4_id'] ?? null;
 
-                $stmt->bind_param(
+                $stmtUpdate->bind_param(
                     "sisssss",
                     $newItemNo,
                     $newLevel,
@@ -660,7 +710,17 @@ class AssetModel
                     $currentId
                 );
 
-                $stmt->execute();
+                if (!$stmtUpdate->execute()) {
+
+                    logMessage(
+                        "Update failed for {$currentId}: "
+                        . $stmtUpdate->error,
+                        'error'
+                    );
+
+                    $skippedRows++;
+                    continue;
+                }
 
                 $updatedRows++;
             }
@@ -668,6 +728,7 @@ class AssetModel
             return [
                 'status' => 'success',
                 'updated_rows' => $updatedRows,
+                'skipped_rows' => $skippedRows,
                 'received_rows' => count($mappings)
             ];
 
