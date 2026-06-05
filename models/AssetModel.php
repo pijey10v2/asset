@@ -208,7 +208,7 @@ class AssetModel
         }
 
         $sql = "SELECT id, c_asset_name FROM `$table` WHERE c_asset_name IS NOT NULL
-        OR TRIM(c_asset_name) <> '' ORDER BY c_asset_name ASC";
+        AND TRIM(c_asset_name) <> '' ORDER BY c_asset_name ASC";
         $result = $this->conn->query($sql);
 
         if (!$result) {
@@ -311,7 +311,7 @@ class AssetModel
 
         //select all data without condition
         $sql = "SELECT id, c_import_batch, dateCreated FROM `$table` WHERE c_import_batch IS NOT NULL
-        OR TRIM(c_import_batch) <> '' ORDER BY dateCreated DESC";
+        AND TRIM(c_import_batch) <> '' ORDER BY dateCreated DESC";
         $result = $this->conn->query($sql);
 
         if (!$result) {
