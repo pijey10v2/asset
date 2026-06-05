@@ -220,38 +220,11 @@ class AssetModel
 
         $hierarchies = [];
 
-        // while ($row = $result->fetch_assoc()) {
-        //     $hierarchies[] = [
-        //         "id" => $row['id'],
-        //         "c_asset_name" => $row['c_asset_name']
-        //     ];
-        // }
-        while ($row = $result->fetch_assoc())
-        {
-            $matched =
-                $this->autoMatchHierarchy($row);
-
-            if ($matched)
-            {
-                $path =
-                    $this->buildHierarchyPath(
-                        $matched['id']
-                    );
-
-                $row['matched_level1_id']
-                    = $path[1] ?? null;
-
-                $row['matched_level2_id']
-                    = $path[2] ?? null;
-
-                $row['matched_level3_id']
-                    = $path[3] ?? null;
-
-                $row['matched_level4_id']
-                    = $path[4] ?? null;
-            }
-
-            $assets[] = $row;
+        while ($row = $result->fetch_assoc()) {
+            $hierarchies[] = [
+                "id" => $row['id'],
+                "c_asset_name" => $row['c_asset_name']
+            ];
         }
 
         return [
@@ -283,7 +256,34 @@ class AssetModel
 
         $assets = [];
 
-        while ($row = $result->fetch_assoc()) {
+        // while ($row = $result->fetch_assoc()) {
+        //     $assets[] = $row;
+        // }
+        while ($row = $result->fetch_assoc())
+        {
+            $matched =
+                $this->autoMatchHierarchy($row);
+
+            if ($matched)
+            {
+                $path =
+                    $this->buildHierarchyPath(
+                        $matched['id']
+                    );
+
+                $row['matched_level1_id']
+                    = $path[1] ?? null;
+
+                $row['matched_level2_id']
+                    = $path[2] ?? null;
+
+                $row['matched_level3_id']
+                    = $path[3] ?? null;
+
+                $row['matched_level4_id']
+                    = $path[4] ?? null;
+            }
+
             $assets[] = $row;
         }
 
