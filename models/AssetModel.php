@@ -299,6 +299,40 @@ class AssetModel
         ];
     }
 
+    public function getRecentImportBatchNos($table, $type)
+    {
+        // Verify that table exists
+        if (!$this->tableExists($table)) {
+            return [
+                "status" => "error",
+                "message" => "Table '$table' does not exist."
+            ];
+        }
+
+        //select all data without condition
+        $sql = "SELECT id, c_import_batch, dateCreated FROM `$table` WHERE c_import_batch IS NOT NULL
+        OR TRIM(c_import_batch) <> '' ORDER BY dateCreated DESC";
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return [
+                "status" => "error",
+                "message" => $this->conn->error
+            ];
+        }
+
+        $assets = [];
+
+        while ($row = $result->fetch_assoc()) {
+            $assets[] = $row;
+        }
+
+        return [
+            "status" => "success",
+            "assets" => $assets
+        ];
+    }
+
     public function insertAssetDataBulk($assetTable, $importBatchNo, $dataId, array $rows, $bimData, $createdBy, $createdByName, $type) 
     {
         // Log start of bulk insert
@@ -634,12 +668,11 @@ class AssetModel
 
                 
                 //Update
-                
+                //removed c_level = ?,
                 $stmtUpdate = $this->conn->prepare("
                     UPDATE app_fd_asset_hierarchy
                     SET
                         c_item_no = ?,
-                        c_level = ?,
                         c_parent_id = ?,
                         c_level1_id = ?,
                         c_level2_id = ?,
@@ -662,9 +695,10 @@ class AssetModel
                 $level4Id = $mapping['level4_id'] ?? null;
 
                 $stmtUpdate->bind_param(
-                    "sissssss",
+                    //"sissssss",
+                    "sssssss",
                     $newItemNo,
-                    $newLevel,
+                    //$newLevel,
                     $parentId,
                     $level1Id,
                     $level2Id,

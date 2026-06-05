@@ -26,6 +26,8 @@ class AssetController
                 return $this->getAssetHierarchy($input, $type);
             case 'get_asset_hierarchy_all':
                 return $this->getAssetHierarchyAll($input, $type);
+            case 'get_recent_importbatch_nos':
+                return $this->getRecentImportBatchNos($input, $type);
             case 'update_hierarchy_mapping':
                 return $this->updateHierarchyMapping($input);
             case 'bulk_insert_asset_data':
@@ -79,6 +81,13 @@ class AssetController
         // get table data - from app_fd_asset_hierarchy
         $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
         return $this->model->getAssetHierarchyAll($table, $type);
+    }
+
+    private function getRecentImportBatchNos($input, $type)
+    { 
+        // get table data - from app_fd_asset_hierarchy - c_import_batch
+        $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
+        return $this->model->getRecentImportBatchNos($table, $type);
     }
 
     private function insertBulkAssetData($input, $type)
