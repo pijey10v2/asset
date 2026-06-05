@@ -220,11 +220,38 @@ class AssetModel
 
         $hierarchies = [];
 
-        while ($row = $result->fetch_assoc()) {
-            $hierarchies[] = [
-                "id" => $row['id'],
-                "c_asset_name" => $row['c_asset_name']
-            ];
+        // while ($row = $result->fetch_assoc()) {
+        //     $hierarchies[] = [
+        //         "id" => $row['id'],
+        //         "c_asset_name" => $row['c_asset_name']
+        //     ];
+        // }
+        while ($row = $result->fetch_assoc())
+        {
+            $matched =
+                $this->autoMatchHierarchy($row);
+
+            if ($matched)
+            {
+                $path =
+                    $this->buildHierarchyPath(
+                        $matched['id']
+                    );
+
+                $row['matched_level1_id']
+                    = $path[1] ?? null;
+
+                $row['matched_level2_id']
+                    = $path[2] ?? null;
+
+                $row['matched_level3_id']
+                    = $path[3] ?? null;
+
+                $row['matched_level4_id']
+                    = $path[4] ?? null;
+            }
+
+            $assets[] = $row;
         }
 
         return [
@@ -755,6 +782,104 @@ class AssetModel
                 'message' => $e->getMessage()
             ];
         }
+    }
+
+    public function autoMatchHierarchy($asset)
+    {
+        $sql = "
+            SELECT
+                id,
+                c_asset_name,
+                c_keywords,
+                c_parent_id
+            FROM app_fd_asset_hierarchy
+            WHERE c_keywords IS NOT NULL
+            AND TRIM(c_keywords) <> ''
+        ";
+
+        $result = $this->conn->query($sql);
+
+        if (!$result) {
+            return null;
+        }
+
+        while ($row = $result->fetch_assoc())
+        {
+            $keywords = explode(
+                ',',
+                $row['c_keywords']
+            );
+
+            foreach ($asset as $value)
+            {
+                if (empty($value)) {
+                    continue;
+                }
+
+                foreach ($keywords as $keyword)
+                {
+                    $keyword = trim(
+                        strtolower($keyword)
+                    );
+
+                    $value = trim(
+                        strtolower($value)
+                    );
+
+                    if (
+                        !empty($keyword)
+                        &&
+                        stripos($value, $keyword) !== false
+                    ) {
+                        return $row;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function buildHierarchyPath($hierarchyId)
+    {
+        $path = [];
+
+        while ($hierarchyId)
+        {
+            $stmt = $this->conn->prepare("
+                SELECT
+                    id,
+                    c_parent_id,
+                    c_level
+                FROM app_fd_asset_hierarchy
+                WHERE id = ?
+            ");
+
+            $stmt->bind_param(
+                "s",
+                $hierarchyId
+            );
+
+            $stmt->execute();
+
+            $stmt->bind_result(
+                $id,
+                $parentId,
+                $level
+            );
+
+            if (!$stmt->fetch()) {
+                break;
+            }
+
+            $stmt->close();
+
+            $path[$level] = $id;
+
+            $hierarchyId = $parentId;
+        }
+
+        return $path;
     }
 
 }
