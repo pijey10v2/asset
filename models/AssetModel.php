@@ -310,8 +310,16 @@ class AssetModel
         }
 
         //select all data without condition
-        $sql = "SELECT id, c_import_batch, dateCreated FROM `$table` WHERE c_import_batch IS NOT NULL
-        AND TRIM(c_import_batch) <> '' ORDER BY dateCreated DESC";
+        $sql = "
+            SELECT
+                c_import_batch,
+                MAX(dateCreated) AS dateCreated
+            FROM `$table`
+            WHERE c_import_batch IS NOT NULL
+            AND TRIM(c_import_batch) <> ''
+            GROUP BY c_import_batch
+            ORDER BY MAX(dateCreated) DESC
+        ";
         $result = $this->conn->query($sql);
 
         if (!$result) {
