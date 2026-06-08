@@ -296,6 +296,14 @@ class AssetModel
 
                 $row['c_matched_level4_id']
                     = $path[4] ?? null;
+
+                logMessage(
+                    json_encode([
+                        'matched_asset' => $matched['c_asset_name'] ?? '',
+                        'path' => $path
+                    ]),
+                    'info'
+                );
             }
 
             $assets[] = $row;
@@ -723,10 +731,16 @@ class AssetModel
                     SET
                         c_item_no = ?,
                         c_parent_id = ?,
+
                         c_level1_id = ?,
                         c_level2_id = ?,
                         c_level3_id = ?,
-                        c_level4_id = ?
+                        c_level4_id = ?,
+
+                        c_matched_level1_id = ?,
+                        c_matched_level2_id = ?,
+                        c_matched_level3_id = ?,
+                        c_matched_level4_id = ?
                     WHERE id = ?
                 ");
 
@@ -743,16 +757,28 @@ class AssetModel
                 $level3Id = $mapping['level3_id'] ?? null;
                 $level4Id = $mapping['level4_id'] ?? null;
 
+                $matchedLevel1 = $level1Id;
+                $matchedLevel2 = $level2Id;
+                $matchedLevel3 = $level3Id;
+                $matchedLevel4 = $level4Id;
+
                 $stmtUpdate->bind_param(
                     //"sissssss",
-                    "sssssss",
+                    "sssssssssss",
                     $newItemNo,
                     //$newLevel,
                     $parentId,
+                    
                     $level1Id,
                     $level2Id,
                     $level3Id,
                     $level4Id,
+
+                    $matchedLevel1,
+                    $matchedLevel2,
+                    $matchedLevel3,
+                    $matchedLevel4,
+                    
                     $currentId
                 );
 
@@ -845,6 +871,15 @@ class AssetModel
                         &&
                         stripos($value, $keyword) !== false
                     ) {
+
+                    logMessage(
+                        json_encode([
+                            'keyword' => $keyword,
+                            'value' => $value,
+                            'matched_asset' => $row['c_asset_name']
+                        ]),
+                        'info'
+                    );
                         return $row;
                     }
                 }
@@ -856,15 +891,14 @@ class AssetModel
 
     public function buildHierarchyPath($hierarchyId)
     {
-        $path = [];
+        $levels = [];
 
         while ($hierarchyId)
         {
             $stmt = $this->conn->prepare("
                 SELECT
                     id,
-                    c_parent_id,
-                    c_level
+                    c_parent_id
                 FROM app_fd_asset_hierarchy
                 WHERE id = ?
             ");
@@ -878,8 +912,7 @@ class AssetModel
 
             $stmt->bind_result(
                 $id,
-                $parentId,
-                $level
+                $parentId
             );
 
             if (!$stmt->fetch()) {
@@ -888,12 +921,20 @@ class AssetModel
 
             $stmt->close();
 
-            $path[$level] = $id;
+            array_unshift(
+                $levels,
+                $id
+            );
 
             $hierarchyId = $parentId;
         }
 
-        return $path;
+        return [
+            1 => $levels[0] ?? null,
+            2 => $levels[1] ?? null,
+            3 => $levels[2] ?? null,
+            4 => $levels[3] ?? null
+        ];
     }
 
 }
