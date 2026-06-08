@@ -297,33 +297,11 @@ class AssetModel
 
         $assets = [];
 
-        while ($row = $result->fetch_assoc())
-        {
-            $matched = $this->autoMatchHierarchy(
-                $row,
-                $hierarchyKeywords
-            );
-
-            if ($matched)
-            {
-                $path = $this->buildHierarchyPath(
-                    $matched['id']
-                );
-
-                $row['c_matched_level1_id']
-                    = $path[1] ?? null;
-
-                $row['c_matched_level2_id']
-                    = $path[2] ?? null;
-
-                $row['c_matched_level3_id']
-                    = $path[3] ?? null;
-
-                $row['c_matched_level4_id']
-                    = $path[4] ?? null;
-            }
-
-            $assets[] = $row;
+        while ($row = $result->fetch_assoc()) {
+            $hierarchies[] = [
+                "id" => $row['id'],
+                "c_asset_name" => $row['c_asset_name']
+            ];
         }
 
         return [
@@ -839,95 +817,6 @@ class AssetModel
                 'message' => $e->getMessage()
             ];
         }
-    }
-
-    public function autoMatchHierarchy(
-        $asset,
-        $hierarchyKeywords
-    )
-    {
-        foreach ($hierarchyKeywords as $hierarchy)
-        {
-            foreach ($hierarchy['keyword_array'] as $keyword)
-            {
-                $keyword = strtolower(trim($keyword));
-
-                if(empty($keyword)) {
-                    continue;
-                }
-
-                foreach ($asset as $columnValue)
-                {
-                    if(empty($columnValue)) {
-                        continue;
-                    }
-
-                    $columnValue = strtolower(
-                        trim((string)$columnValue)
-                    );
-
-                    if(
-                        stripos(
-                            $columnValue,
-                            $keyword
-                        ) !== false
-                    )
-                    {
-                        return $hierarchy;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public function buildHierarchyPath($hierarchyId)
-    {
-        $levels = [];
-
-        while ($hierarchyId)
-        {
-            $stmt = $this->conn->prepare("
-                SELECT
-                    id,
-                    c_parent_id
-                FROM app_fd_asset_hierarchy
-                WHERE id = ?
-            ");
-
-            $stmt->bind_param(
-                "s",
-                $hierarchyId
-            );
-
-            $stmt->execute();
-
-            $stmt->bind_result(
-                $id,
-                $parentId
-            );
-
-            if(!$stmt->fetch()) {
-                break;
-            }
-
-            $stmt->close();
-
-            array_unshift(
-                $levels,
-                $id
-            );
-
-            $hierarchyId = $parentId;
-        }
-
-        return [
-            1 => $levels[0] ?? null,
-            2 => $levels[1] ?? null,
-            3 => $levels[2] ?? null,
-            4 => $levels[3] ?? null
-        ];
     }
 
 }
