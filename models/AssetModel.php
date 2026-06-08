@@ -265,6 +265,15 @@ class AssetModel
         // }
         while ($row = $result->fetch_assoc())
         {
+            logMessage(
+                json_encode([
+                    'door_style' => $row['c_door_style'] ?? null,
+                    'material' => $row['c_material'] ?? null,
+                    'window_style' => $row['c_window_style'] ?? null
+                ]),
+                'info'
+            );
+
             $matched =
                 $this->autoMatchHierarchy($row);
 
@@ -275,16 +284,16 @@ class AssetModel
                         $matched['id']
                     );
 
-                $row['matched_level1_id']
+                $row['c_matched_level1_id']
                     = $path[1] ?? null;
 
-                $row['matched_level2_id']
+                $row['c_matched_level2_id']
                     = $path[2] ?? null;
 
-                $row['matched_level3_id']
+                $row['c_matched_level3_id']
                     = $path[3] ?? null;
 
-                $row['matched_level4_id']
+                $row['c_matched_level4_id']
                     = $path[4] ?? null;
             }
 
