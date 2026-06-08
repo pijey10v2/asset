@@ -238,32 +238,30 @@ class AssetModel
         ];
     }
 
-    private function getHierarchyKeywords()
+    public function getHierarchyKeywords()
     {
-        $data = [];
-
-        $result = $this->conn->query("
+        $sql = "
             SELECT
                 id,
                 c_asset_name,
                 c_keywords,
-                c_parent_id
+                c_parent_id,
+                c_level
             FROM app_fd_asset_hierarchy
             WHERE c_keywords IS NOT NULL
             AND TRIM(c_keywords) <> ''
-        ");
+        ";
 
-        while($row = $result->fetch_assoc())
+        $result = $this->conn->query($sql);
+
+        $rows = [];
+
+        while ($row = $result->fetch_assoc())
         {
-            $row['keyword_array'] = array_map(
-                'trim',
-                explode(',', $row['c_keywords'])
-            );
-
-            $data[] = $row;
+            $rows[] = $row;
         }
 
-        return $data;
+        return $rows;
     }
 
     public function getAssetHierarchy($table, $type)
@@ -285,23 +283,10 @@ class AssetModel
 
         $result = $this->conn->query($sql);
 
-        if (!$result) {
-            return [
-                "status" => "error",
-                "message" => $this->conn->error
-            ];
-        }
-
-        // Load hierarchy master ONCE
-        $hierarchyKeywords = $this->getHierarchyKeywords();
-
         $assets = [];
 
         while ($row = $result->fetch_assoc()) {
-            $hierarchies[] = [
-                "id" => $row['id'],
-                "c_asset_name" => $row['c_asset_name']
-            ];
+            $assets[] = $row;
         }
 
         return [
@@ -431,6 +416,8 @@ class AssetModel
 
         $filteredRows = []; // will store only valid rows
 
+        $hierarchyKeywords = $this->getHierarchyKeywords();
+
         foreach ($rows as &$row) {
 
             $row['id'] = generateUUIDv4();
@@ -446,6 +433,42 @@ class AssetModel
 
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
+
+            $matched =
+            $this->autoMatchHierarchy(
+                $row,
+                $hierarchyKeywords
+            );
+
+            if($matched)
+            {
+                $path =
+                    $this->buildHierarchyPath(
+                        $matched['id']
+                    );
+
+                $row['c_matched_level1_id']
+                    = $path[1] ?? null;
+
+                $row['c_matched_level2_id']
+                    = $path[2] ?? null;
+
+                $row['c_matched_level3_id']
+                    = $path[3] ?? null;
+
+                $row['c_matched_level4_id']
+                    = $path[4] ?? null;
+
+                $row['c_keywords']
+                    = $matched['c_keywords'];
+            }
+            else
+            {
+                $row['c_matched_level1_id'] = null;
+                $row['c_matched_level2_id'] = null;
+                $row['c_matched_level3_id'] = null;
+                $row['c_matched_level4_id'] = null;
+            }
 
             // Check for required fields
             $requiredFields = [];
@@ -817,6 +840,122 @@ class AssetModel
                 'message' => $e->getMessage()
             ];
         }
+    }
+
+    public function autoMatchHierarchy(
+        $asset,
+        $hierarchyKeywords
+    )
+    {
+        foreach ($hierarchyKeywords as $hierarchy)
+        {
+            if (
+                empty($hierarchy['c_keywords'])
+            ) {
+                continue;
+            }
+
+            $keywords = explode(
+                ',',
+                $hierarchy['c_keywords']
+            );
+
+            foreach ($keywords as $keyword)
+            {
+                $keyword = strtolower(
+                    trim($keyword)
+                );
+
+                if (empty($keyword)) {
+                    continue;
+                }
+
+                foreach ($asset as $columnValue)
+                {
+                    if (
+                        empty($columnValue)
+                        || !is_string($columnValue)
+                    ) {
+                        continue;
+                    }
+
+                    $columnValue = strtolower(
+                        trim($columnValue)
+                    );
+
+                    if (
+                        stripos(
+                            $columnValue,
+                            $keyword
+                        ) !== false
+                    ) {
+
+                        logMessage(
+                            json_encode([
+                                'keyword' => $keyword,
+                                'matched_asset' =>
+                                    $hierarchy['c_asset_name']
+                            ]),
+                            'info'
+                        );
+
+                        return $hierarchy;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+    
+    public function buildHierarchyPath(
+        $hierarchyId
+    )
+    {
+        $path = [];
+
+        while ($hierarchyId)
+        {
+            $stmt = $this->conn->prepare("
+                SELECT
+                    id,
+                    c_parent_id,
+                    c_level
+                FROM app_fd_asset_hierarchy
+                WHERE id = ?
+                LIMIT 1
+            ");
+
+            if (!$stmt) {
+                break;
+            }
+
+            $stmt->bind_param(
+                "s",
+                $hierarchyId
+            );
+
+            $stmt->execute();
+
+            $stmt->bind_result(
+                $id,
+                $parentId,
+                $level
+            );
+
+            if (!$stmt->fetch()) {
+                $stmt->close();
+                break;
+            }
+
+            $stmt->close();
+
+            $path[(int)$level] = $id;
+
+            $hierarchyId = $parentId;
+        }
+
+        return $path;
     }
 
 }
