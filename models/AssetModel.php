@@ -238,9 +238,36 @@ class AssetModel
         ];
     }
 
+    private function getHierarchyKeywords()
+    {
+        $data = [];
+
+        $result = $this->conn->query("
+            SELECT
+                id,
+                c_asset_name,
+                c_keywords,
+                c_parent_id
+            FROM app_fd_asset_hierarchy
+            WHERE c_keywords IS NOT NULL
+            AND TRIM(c_keywords) <> ''
+        ");
+
+        while($row = $result->fetch_assoc())
+        {
+            $row['keyword_array'] = array_map(
+                'trim',
+                explode(',', $row['c_keywords'])
+            );
+
+            $data[] = $row;
+        }
+
+        return $data;
+    }
+
     public function getAssetHierarchy($table, $type)
     {
-        // Verify that table exists
         if (!$this->tableExists($table)) {
             return [
                 "status" => "error",
@@ -248,8 +275,14 @@ class AssetModel
             ];
         }
 
-        $sql = "SELECT * FROM `$table` WHERE c_asset_name IS NULL
-        OR TRIM(c_asset_name) = '' ORDER BY c_asset_name ASC";
+        $sql = "
+            SELECT *
+            FROM `$table`
+            WHERE c_asset_name IS NULL
+            OR TRIM(c_asset_name) = ''
+            ORDER BY id DESC
+        ";
+
         $result = $this->conn->query($sql);
 
         if (!$result) {
@@ -259,31 +292,23 @@ class AssetModel
             ];
         }
 
+        // Load hierarchy master ONCE
+        $hierarchyKeywords = $this->getHierarchyKeywords();
+
         $assets = [];
 
-        // while ($row = $result->fetch_assoc()) {
-        //     $assets[] = $row;
-        // }
         while ($row = $result->fetch_assoc())
         {
-            logMessage(
-                json_encode([
-                    'door_style' => $row['c_door_style'] ?? null,
-                    'material' => $row['c_material'] ?? null,
-                    'window_style' => $row['c_window_style'] ?? null
-                ]),
-                'info'
+            $matched = $this->autoMatchHierarchy(
+                $row,
+                $hierarchyKeywords
             );
-
-            $matched =
-                $this->autoMatchHierarchy($row);
 
             if ($matched)
             {
-                $path =
-                    $this->buildHierarchyPath(
-                        $matched['id']
-                    );
+                $path = $this->buildHierarchyPath(
+                    $matched['id']
+                );
 
                 $row['c_matched_level1_id']
                     = $path[1] ?? null;
@@ -296,14 +321,6 @@ class AssetModel
 
                 $row['c_matched_level4_id']
                     = $path[4] ?? null;
-
-                logMessage(
-                    json_encode([
-                        'matched_asset' => $matched['c_asset_name'] ?? '',
-                        'path' => $path
-                    ]),
-                    'info'
-                );
             }
 
             $assets[] = $row;
@@ -768,7 +785,7 @@ class AssetModel
                     $newItemNo,
                     //$newLevel,
                     $parentId,
-                    
+
                     $level1Id,
                     $level2Id,
                     $level3Id,
@@ -824,63 +841,39 @@ class AssetModel
         }
     }
 
-    public function autoMatchHierarchy($asset)
+    public function autoMatchHierarchy(
+        $asset,
+        $hierarchyKeywords
+    )
     {
-        $sql = "
-            SELECT
-                id,
-                c_asset_name,
-                c_keywords,
-                c_parent_id
-            FROM app_fd_asset_hierarchy
-            WHERE c_keywords IS NOT NULL
-            AND TRIM(c_keywords) <> ''
-        ";
-
-        $result = $this->conn->query($sql);
-
-        if (!$result) {
-            return null;
-        }
-
-        while ($row = $result->fetch_assoc())
+        foreach ($hierarchyKeywords as $hierarchy)
         {
-            $keywords = explode(
-                ',',
-                $row['c_keywords']
-            );
-
-            foreach ($asset as $value)
+            foreach ($hierarchy['keyword_array'] as $keyword)
             {
-                if (empty($value)) {
+                $keyword = strtolower(trim($keyword));
+
+                if(empty($keyword)) {
                     continue;
                 }
 
-                foreach ($keywords as $keyword)
+                foreach ($asset as $columnValue)
                 {
-                    $keyword = trim(
-                        strtolower($keyword)
+                    if(empty($columnValue)) {
+                        continue;
+                    }
+
+                    $columnValue = strtolower(
+                        trim((string)$columnValue)
                     );
 
-                    $value = trim(
-                        strtolower($value)
-                    );
-
-                    if (
-                        !empty($keyword)
-                        &&
-                        stripos($value, $keyword) !== false
-                    ) {
-
-                    logMessage(
-                        json_encode([
-                            'keyword' => $keyword,
-                            'value' => $value,
-                            'matched_asset' => $row['c_asset_name']
-                        ]),
-                        'info'
-                    );
-                        return $row;
+                    if(
+                        stripos(
+                            $columnValue,
+                            $keyword
+                        ) !== false
+                    )
+                    {
+                        return $hierarchy;
                     }
                 }
             }
@@ -915,7 +908,7 @@ class AssetModel
                 $parentId
             );
 
-            if (!$stmt->fetch()) {
+            if(!$stmt->fetch()) {
                 break;
             }
 
