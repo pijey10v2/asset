@@ -154,6 +154,10 @@ class AssetModel
             'c_level2_id',
             'c_level3_id',
             'c_level4_id',
+            'c_matched_level1_id',
+            'c_matched_level2_id',
+            'c_matched_level3_id',
+            'c_matched_level4_id',
         ];
 
         if ($type === 'cobie') {
