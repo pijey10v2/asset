@@ -755,6 +755,12 @@ class AssetModel
                         c_level3_id = ?,
                         c_level4_id = ?,
 
+                        c_asset_name = ?,
+                        c_asset_code = ?,
+
+                        c_sub_asset_name = ?,
+                        c_sub_asset_code = ?,
+
                         c_matched_level1_id = ?,
                         c_matched_level2_id = ?,
                         c_matched_level3_id = ?,
@@ -775,6 +781,68 @@ class AssetModel
                 $level3Id = $mapping['level3_id'] ?? null;
                 $level4Id = $mapping['level4_id'] ?? null;
 
+                $assetName = null;
+                $assetCode = null;
+
+                if (!empty($level1Id))
+                {
+                    $stmtLevel1 = $this->conn->prepare("
+                        SELECT
+                            c_asset_name,
+                            c_asset_code
+                        FROM app_fd_asset_hierarchy
+                        WHERE id = ?
+                        LIMIT 1
+                    ");
+
+                    $stmtLevel1->bind_param(
+                        "s",
+                        $level1Id
+                    );
+
+                    $stmtLevel1->execute();
+
+                    $stmtLevel1->bind_result(
+                        $assetName,
+                        $assetCode
+                    );
+
+                    $stmtLevel1->fetch();
+
+                    $stmtLevel1->close();
+                }
+
+                $subAssetName = null;
+                $subAssetCode = null;
+
+                if (!empty($level2Id))
+                {
+                    $stmtLevel2 = $this->conn->prepare("
+                        SELECT
+                            c_asset_name,
+                            c_asset_code
+                        FROM app_fd_asset_hierarchy
+                        WHERE id = ?
+                        LIMIT 1
+                    ");
+
+                    $stmtLevel2->bind_param(
+                        "s",
+                        $level2Id
+                    );
+
+                    $stmtLevel2->execute();
+
+                    $stmtLevel2->bind_result(
+                        $subAssetName,
+                        $subAssetCode
+                    );
+
+                    $stmtLevel2->fetch();
+
+                    $stmtLevel2->close();
+                }
+
                 $matchedLevel1 = $level1Id;
                 $matchedLevel2 = $level2Id;
                 $matchedLevel3 = $level3Id;
@@ -782,7 +850,7 @@ class AssetModel
 
                 $stmtUpdate->bind_param(
                     //"sissssss",
-                    "sssssssssss",
+                    "sssssssssssssss",
                     $newItemNo,
                     //$newLevel,
                     $parentId,
@@ -791,6 +859,12 @@ class AssetModel
                     $level2Id,
                     $level3Id,
                     $level4Id,
+
+                    $assetName,
+                    $assetCode,
+
+                    $subAssetName,
+                    $subAssetCode,
 
                     $matchedLevel1,
                     $matchedLevel2,
