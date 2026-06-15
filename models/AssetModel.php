@@ -272,12 +272,12 @@ class AssetModel
                 "message" => "Table '$table' does not exist."
             ];
         }
-
+        //setup hierarchy - display all records - parent_id is null or empty
         $sql = "
             SELECT *
             FROM `$table`
-            WHERE c_asset_name IS NULL
-            OR TRIM(c_asset_name) = ''
+            WHERE c_parent_id IS NULL
+            OR TRIM(c_parent_id) = ''
             ORDER BY id DESC
         ";
 
