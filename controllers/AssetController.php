@@ -23,7 +23,8 @@ class AssetController
             case 'get_hierarchylevel_1':
                 return $this->getHierarchyLevel1($input, $type);
             case 'get_asset_hierarchy':
-                return $this->getAssetHierarchy($input, $type);
+                $importBatch = $input['import_batch'] ?? '';
+                return $this->getAssetHierarchy($input, $type, $importBatch);
             case 'get_asset_hierarchy_all':
                 return $this->getAssetHierarchyAll($input, $type);
             case 'get_recent_importbatch_nos':
@@ -69,11 +70,11 @@ class AssetController
         return $this->model->getHierarchyLevel1($table, $type);
     }
 
-    private function getAssetHierarchy($input, $type)
+    private function getAssetHierarchy($input, $type, $importBatch)
     { 
         // get table data - from app_fd_asset_hierarchy
         $table = $input['asset_table_name'] ?? 'app_fd_asset_hierarchy';
-        return $this->model->getAssetHierarchy($table, $type);
+        return $this->model->getAssetHierarchy($table, $type, $importBatch);
     }
 
     private function getAssetHierarchyAll($input, $type)

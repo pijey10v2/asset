@@ -212,8 +212,12 @@ class AssetModel
             ];
         }
 
-        $sql = "SELECT id, c_asset_name FROM `$table` WHERE c_asset_name IS NOT NULL
-        AND TRIM(c_asset_name) <> '' ORDER BY c_asset_name ASC";
+        $sql = "SELECT id, c_asset_name FROM `$table` 
+        WHERE 
+        c_level = 1 AND
+        c_asset_name IS NOT NULL AND 
+        TRIM(c_asset_name) <> '' 
+        ORDER BY c_asset_name ASC";
         $result = $this->conn->query($sql);
 
         if (!$result) {
@@ -244,12 +248,11 @@ class AssetModel
             SELECT
                 id,
                 c_asset_name,
+                c_asset_code,
                 c_keywords,
                 c_parent_id,
                 c_level
             FROM app_fd_asset_hierarchy
-            WHERE c_keywords IS NOT NULL
-            AND TRIM(c_keywords) <> ''
         ";
 
         $result = $this->conn->query($sql);
@@ -264,7 +267,7 @@ class AssetModel
         return $rows;
     }
 
-    public function getAssetHierarchy($table, $type)
+    public function getAssetHierarchy($table, $type, $importBatch)
     {
         if (!$this->tableExists($table)) {
             return [
@@ -276,8 +279,12 @@ class AssetModel
         $sql = "
             SELECT *
             FROM `$table`
-            WHERE c_parent_id IS NULL
-            OR TRIM(c_parent_id) = ''
+            WHERE 
+            c_import_batch = '$importBatch'
+            AND
+            c_parent_id IS NULL
+            OR 
+            TRIM(c_parent_id) = ''
             ORDER BY id DESC
         ";
 
@@ -418,6 +425,13 @@ class AssetModel
 
         $hierarchyKeywords = $this->getHierarchyKeywords();
 
+        $hierarchyLookup = [];
+
+        foreach ($hierarchyKeywords as $item)
+        {
+            $hierarchyLookup[$item['id']] = $item;
+        }
+
         foreach ($rows as &$row) {
 
             $row['id'] = generateUUIDv4();
@@ -434,33 +448,53 @@ class AssetModel
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
 
+            $keywordParts = [];
+
+            foreach ($row as $column => $value)
+            {
+                if(empty($value) || !is_string($value)){
+                    continue;
+                }
+
+                $value = trim($value);
+
+                if(strlen($value) < 3){
+                    continue;
+                }
+
+                $keywordParts[] = strtolower($value);
+            }
+
+            $row['c_keywords'] =
+            $this->buildAssetKeywords(
+                $row
+            );
+
             $matched =
             $this->autoMatchHierarchy(
                 $row,
                 $hierarchyKeywords
             );
 
-            if($matched)
+            if ($matched)
             {
                 $path =
                     $this->buildHierarchyPath(
-                        $matched['id']
+                        $matched,
+                        $hierarchyLookup
                     );
 
-                $row['c_matched_level1_id']
-                    = $path[1] ?? null;
+                $row['c_matched_level1_id'] =
+                    $path[1] ?? null;
 
-                $row['c_matched_level2_id']
-                    = $path[2] ?? null;
+                $row['c_matched_level2_id'] =
+                    $path[2] ?? null;
 
-                $row['c_matched_level3_id']
-                    = $path[3] ?? null;
+                $row['c_matched_level3_id'] =
+                    $path[3] ?? null;
 
-                $row['c_matched_level4_id']
-                    = $path[4] ?? null;
-
-                $row['c_keywords']
-                    = $matched['c_keywords'];
+                $row['c_matched_level4_id'] =
+                    $path[4] ?? null;
             }
             else
             {
@@ -526,11 +560,19 @@ class AssetModel
         }
 
         // Build BULK UPSERT SQL
-        $columns = array_keys($rows[0]);
+        if(empty($filteredRows))
+        {
+            return [
+                "status" => "error",
+                "message" => "No valid rows to insert"
+            ];
+        }
+
+        $columns = array_keys($filteredRows[0]);
         $columnSql = '`' . implode('`,`', $columns) . '`';
 
         $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
-        $valuesSql = implode(',', array_fill(0, count($rows), $placeholders));
+        $valuesSql = implode(',', array_fill(0, count($filteredRows), $placeholders));
 
         $updateSql = implode(', ', array_map(
             fn($col) => "`$col` = VALUES(`$col`)",
@@ -551,7 +593,7 @@ class AssetModel
         $values = [];
 
         // Flatten values for binding
-        foreach ($rows as $row) {
+        foreach ($filteredRows as $row){
             foreach ($columns as $col) {
                 $types .= 's'; // assuming all string types for simplicity
                 $values[] = $row[$col] ?? null;
@@ -575,7 +617,7 @@ class AssetModel
         // Return success
         return [
             "status" => "success",
-            "inserted" => count($rows)
+            "inserted" => count($filteredRows)
         ];
     }
 
@@ -842,120 +884,190 @@ class AssetModel
         }
     }
 
-    public function autoMatchHierarchy(
-        $asset,
-        $hierarchyKeywords
-    )
+    private function autoMatchHierarchy(array $row, array $hierarchies)
     {
-        foreach ($hierarchyKeywords as $hierarchy)
+        $assetText =
+            strtolower(
+                $row['c_keywords'] ?? ''
+            );
+
+        if(empty($assetText))
         {
-            if (
-                empty($hierarchy['c_keywords'])
-            ) {
+            return null;
+        }
+
+        $bestMatch = null;
+        $bestScore = 0;
+
+        foreach($hierarchies as $hierarchy)
+        {
+            $hierarchyName =
+            strtolower(
+                ($hierarchy['c_asset_name'] ?? '')
+                . ' ' .
+                ($hierarchy['c_keywords'] ?? '')
+            );
+
+            if(empty($hierarchyName))
+            {
                 continue;
             }
 
-            $keywords = explode(
-                ',',
-                $hierarchy['c_keywords']
-            );
-
-            foreach ($keywords as $keyword)
-            {
-                $keyword = strtolower(
-                    trim($keyword)
+            $score =
+                $this->calculateMatchScore(
+                    $assetText,
+                    $hierarchyName
                 );
 
-                if (empty($keyword)) {
-                    continue;
-                }
-
-                foreach ($asset as $columnValue)
-                {
-                    if (
-                        empty($columnValue)
-                        || !is_string($columnValue)
-                    ) {
-                        continue;
-                    }
-
-                    $columnValue = strtolower(
-                        trim($columnValue)
-                    );
-
-                    if (
-                        stripos(
-                            $columnValue,
-                            $keyword
-                        ) !== false
-                    ) {
-
-                        logMessage(
-                            json_encode([
-                                'keyword' => $keyword,
-                                'matched_asset' =>
-                                    $hierarchy['c_asset_name']
-                            ]),
-                            'info'
-                        );
-
-                        return $hierarchy;
-                    }
-                }
+            if($score > $bestScore)
+            {
+                $bestScore = $score;
+                $bestMatch = $hierarchy;
             }
+
         }
 
-        return null;
+        logMessage(
+            json_encode([
+                'best_match' =>
+                    $bestMatch['c_asset_name']
+                    ?? null,
+                'best_score' =>
+                    $bestScore
+            ]),
+            'info'
+        );
+
+        return $bestMatch;
     }
     
-    public function buildHierarchyPath(
-        $hierarchyId
-    )
+    private function buildHierarchyPath(array $matched, array $hierarchyLookup)
     {
         $path = [];
 
-        while ($hierarchyId)
+        $currentId = $matched['id'] ?? null;
+
+        while (
+            $currentId &&
+            isset($hierarchyLookup[$currentId])
+        )
         {
-            $stmt = $this->conn->prepare("
-                SELECT
-                    id,
-                    c_parent_id,
-                    c_level
-                FROM app_fd_asset_hierarchy
-                WHERE id = ?
-                LIMIT 1
-            ");
+            $row = $hierarchyLookup[$currentId];
 
-            if (!$stmt) {
-                break;
+            $level =
+                (int)($row['c_level'] ?? 0);
+
+            if (
+                $level >= 1 &&
+                $level <= 4
+            ) {
+                $path[$level] = $currentId;
             }
 
-            $stmt->bind_param(
-                "s",
-                $hierarchyId
-            );
-
-            $stmt->execute();
-
-            $stmt->bind_result(
-                $id,
-                $parentId,
-                $level
-            );
-
-            if (!$stmt->fetch()) {
-                $stmt->close();
-                break;
-            }
-
-            $stmt->close();
-
-            $path[(int)$level] = $id;
-
-            $hierarchyId = $parentId;
+            $currentId =
+                $row['c_parent_id'] ?? null;
         }
 
+        ksort($path);
+
         return $path;
+    }
+
+    private function buildAssetKeywords(array $row)
+    {
+        $keywords = [];
+
+        $excludeColumns = [
+
+            'id',
+            'dateCreated',
+            'dateModified',
+            'createdBy',
+            'createdByName',
+            'modifiedBy',
+            'modifiedByName',
+
+            'c_import_batch',
+            'c_data_id',
+
+            'c_matched_level1_id',
+            'c_matched_level2_id',
+            'c_matched_level3_id',
+            'c_matched_level4_id',
+
+            'c_level1_id',
+            'c_level2_id',
+            'c_level3_id',
+            'c_level4_id'
+        ];
+
+        foreach($row as $column => $value)
+        {
+            if(in_array($column, $excludeColumns)){
+                continue;
+            }
+
+            if(is_array($value) || is_object($value)){
+                continue;
+            }
+
+            $value = trim((string)$value);
+
+            if(empty($value)){
+                continue;
+            }
+
+            if(strlen($value) < 3){
+                continue;
+            }
+
+            $keywords[] =
+                strtolower($value);
+        }
+
+        return implode(
+            ',',
+            array_unique($keywords)
+        );
+    }
+
+    private function calculateMatchScore(string $assetText, string $hierarchyText): int
+    {
+        $score = 0;
+
+        $assetWords =
+            array_unique(
+                preg_split(
+                    '/[\s,;_\-]+/',
+                    strtolower($assetText)
+                )
+            );
+
+        $hierarchyWords =
+            array_unique(
+                preg_split(
+                    '/[\s,;_\-]+/',
+                    strtolower($hierarchyText)
+                )
+            );
+
+        $assetLookup =
+            array_flip($assetWords);
+
+        foreach($hierarchyWords as $word)
+        {
+            if(strlen($word) < 3)
+            {
+                continue;
+            }
+
+            if(isset($assetLookup[$word]))
+            {
+                $score++;
+            }
+        }
+
+        return $score;
     }
 
 }
