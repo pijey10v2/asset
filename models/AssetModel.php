@@ -253,6 +253,9 @@ class AssetModel
                 c_parent_id,
                 c_level
             FROM app_fd_asset_hierarchy
+            WHERE c_asset_name IS NOT NULL
+            AND TRIM(c_asset_name) <> ''
+            AND c_level BETWEEN 1 AND 4
         ";
 
         $result = $this->conn->query($sql);
@@ -447,23 +450,6 @@ class AssetModel
 
             // BIM match
             $row['c_element_id'] = $bimLookup[$row['c_model_element'] ?? ''] ?? null;
-
-            $keywordParts = [];
-
-            foreach ($row as $column => $value)
-            {
-                if(empty($value) || !is_string($value)){
-                    continue;
-                }
-
-                $value = trim($value);
-
-                if(strlen($value) < 3){
-                    continue;
-                }
-
-                $keywordParts[] = strtolower($value);
-            }
 
             $row['c_keywords'] =
             $this->buildAssetKeywords(
@@ -926,17 +912,6 @@ class AssetModel
             }
 
         }
-
-        logMessage(
-            json_encode([
-                'best_match' =>
-                    $bestMatch['c_asset_name']
-                    ?? null,
-                'best_score' =>
-                    $bestScore
-            ]),
-            'info'
-        );
 
         return $bestMatch;
     }
