@@ -60,7 +60,8 @@ switch ($method) {
             $input = json_decode($rawBody, true) ?? [];
         } elseif (str_contains($contentType, 'application/x-www-form-urlencoded')) {
             // Form URL Encoded
-            parse_str($rawBody, $input);
+            // parse_str($rawBody, $input);
+            $input = $_POST;
         } elseif (str_contains($contentType, 'multipart/form-data')) {
             // Multipart Form Data (files + fields)
             $input = $_POST ?: [];
@@ -73,7 +74,32 @@ switch ($method) {
             }
         }
 
-        $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
+        logMessage(
+            'CONTENT_TYPE: ' . $contentType,
+            'info'
+        );
+
+        logMessage(
+            'RAW BODY LENGTH: ' . strlen($rawBody),
+            'info'
+        );
+
+        logMessage(
+            'POST MODE: ' . ($_POST['mode'] ?? 'NULL'),
+            'info'
+        );
+
+        logMessage(
+            'INPUT MODE: ' . ($input['mode'] ?? 'NULL'),
+            'info'
+        );
+
+        // $mode = $input['mode'] ?? ($_GET['mode'] ?? null);
+        $mode =
+        $_POST['mode']
+        ?? $input['mode']
+        ?? $_GET['mode']
+        ?? null;
         $type = $_POST['type'] ?? 'default';
         break;
     default:
