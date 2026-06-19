@@ -255,7 +255,6 @@ class AssetModel
             FROM app_fd_asset_hierarchy
             WHERE c_asset_name IS NOT NULL
             AND TRIM(c_asset_name) <> ''
-            AND c_level BETWEEN 1 AND 4
         ";
 
         $result = $this->conn->query($sql);
@@ -457,39 +456,71 @@ class AssetModel
                 $row
             );
 
-            $matched =
-            $this->autoMatchHierarchy(
-                $row,
-                $hierarchyKeywords
-            );
+            // $matched =
+            // $this->autoMatchHierarchy(
+            //     $row,
+            //     $hierarchyKeywords
+            // );
 
-            if ($matched)
-            {
-                $path =
-                    $this->buildHierarchyPath(
-                        $matched,
-                        $hierarchyLookup
-                    );
+            // if ($matched)
+            // {
+            //     $path =
+            //         $this->buildHierarchyPath(
+            //             $matched,
+            //             $hierarchyLookup
+            //         );
 
-                $row['c_matched_level1_id'] =
-                    $path[1] ?? null;
+            //     $row['c_matched_level1_id'] =
+            //         $path[1] ?? null;
 
-                $row['c_matched_level2_id'] =
-                    $path[2] ?? null;
+            //     $row['c_matched_level2_id'] =
+            //         $path[2] ?? null;
 
-                $row['c_matched_level3_id'] =
-                    $path[3] ?? null;
+            //     $row['c_matched_level3_id'] =
+            //         $path[3] ?? null;
 
-                $row['c_matched_level4_id'] =
-                    $path[4] ?? null;
-            }
-            else
-            {
-                $row['c_matched_level1_id'] = null;
-                $row['c_matched_level2_id'] = null;
-                $row['c_matched_level3_id'] = null;
-                $row['c_matched_level4_id'] = null;
-            }
+            //     $row['c_matched_level4_id'] =
+            //         $path[4] ?? null;
+            // }
+            // else
+            // {
+            //     $row['c_matched_level1_id'] = null;
+            //     $row['c_matched_level2_id'] = null;
+            //     $row['c_matched_level3_id'] = null;
+            //     $row['c_matched_level4_id'] = null;
+            // }
+            $assetText =
+                strtolower(
+                    $row['c_keywords']
+                );
+
+            $row['c_matched_level1_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    1
+                );
+
+            $row['c_matched_level2_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    2
+                );
+
+            $row['c_matched_level3_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    3
+                );
+
+            $row['c_matched_level4_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    4
+                );
 
             // Check for required fields
             $requiredFields = [];
@@ -871,15 +902,17 @@ class AssetModel
         }
     }
 
-    private function autoMatchHierarchy(array $row, array $hierarchies)
+    private function autoMatchHierarchy(
+        array $row,
+        array $hierarchies
+    )
     {
         $assetText =
             strtolower(
                 $row['c_keywords'] ?? ''
             );
 
-        if(empty($assetText))
-        {
+        if(empty($assetText)){
             return null;
         }
 
@@ -888,30 +921,66 @@ class AssetModel
 
         foreach($hierarchies as $hierarchy)
         {
-            $hierarchyName =
-            strtolower(
-                ($hierarchy['c_asset_name'] ?? '')
-                . ' ' .
-                ($hierarchy['c_keywords'] ?? '')
-            );
+            $assetName =
+                strtolower(
+                    trim(
+                        $hierarchy['c_asset_name']
+                        ?? ''
+                    )
+                );
 
-            if(empty($hierarchyName))
-            {
-                continue;
+            $keywords =
+                strtolower(
+                    trim(
+                        $hierarchy['c_keywords']
+                        ?? ''
+                    )
+                );
+
+            $score = 0;
+
+            // asset name match
+            if(
+                !empty($assetName)
+                &&
+                str_contains(
+                    $assetText,
+                    $assetName
+                )
+            ){
+                $score += 1000;
             }
 
-            $score =
-                $this->calculateMatchScore(
-                    $assetText,
-                    $hierarchyName
-                );
+            // keyword match
+            if(!empty($keywords))
+            {
+                $score +=
+                    $this->calculateMatchScore(
+                        $assetText,
+                        $keywords
+                    );
+            }
 
             if($score > $bestScore)
             {
                 $bestScore = $score;
                 $bestMatch = $hierarchy;
             }
+        }
 
+        logMessage(
+            'BEST MATCH',
+            'info',
+            [
+                'asset' => $row['c_model_element'] ?? '',
+                'score' => $bestScore,
+                'match' => $bestMatch['c_asset_name'] ?? null
+            ]
+        );
+
+        // prevent weak matches
+        if($bestScore < 10){
+            return null;
         }
 
         return $bestMatch;
@@ -1007,15 +1076,24 @@ class AssetModel
         );
     }
 
-    private function calculateMatchScore(string $assetText, string $hierarchyText): int
+    private function calculateMatchScore(
+        string $assetText,
+        string $hierarchyText
+    ): int
     {
         $score = 0;
+
+        $assetText =
+            strtolower($assetText);
+
+        $hierarchyText =
+            strtolower($hierarchyText);
 
         $assetWords =
             array_unique(
                 preg_split(
                     '/[\s,;_\-]+/',
-                    strtolower($assetText)
+                    $assetText
                 )
             );
 
@@ -1023,27 +1101,91 @@ class AssetModel
             array_unique(
                 preg_split(
                     '/[\s,;_\-]+/',
-                    strtolower($hierarchyText)
+                    $hierarchyText
                 )
             );
 
-        $assetLookup =
-            array_flip($assetWords);
+        // exact phrase match
+        if(
+            !empty($hierarchyText)
+            &&
+            str_contains(
+                $assetText,
+                $hierarchyText
+            )
+        ){
+            $score += 100;
+        }
 
         foreach($hierarchyWords as $word)
         {
-            if(strlen($word) < 3)
-            {
+            if(strlen($word) < 3){
                 continue;
             }
 
-            if(isset($assetLookup[$word]))
-            {
-                $score++;
+            // exact keyword
+            if(
+                in_array(
+                    $word,
+                    $assetWords
+                )
+            ){
+                $score += 20;
+            }
+
+            // partial keyword
+            elseif(
+                str_contains(
+                    $assetText,
+                    $word
+                )
+            ){
+                $score += 5;
             }
         }
 
         return $score;
+    }
+
+    private function findBestMatchByLevel(
+        string $assetText,
+        array $hierarchies,
+        int $level
+    )
+    {
+        $bestId = null;
+        $bestScore = 0;
+
+        foreach($hierarchies as $hierarchy)
+        {
+            if(
+                (int)$hierarchy['c_level']
+                !== $level
+            ){
+                continue;
+            }
+
+            $searchText =
+                strtolower(
+                    ($hierarchy['c_asset_name'] ?? '')
+                    .' '.
+                    ($hierarchy['c_keywords'] ?? '')
+                );
+
+            $score =
+                $this->calculateMatchScore(
+                    $assetText,
+                    $searchText
+                );
+
+            if($score > $bestScore)
+            {
+                $bestScore = $score;
+                $bestId = $hierarchy['id'];
+            }
+        }
+
+        return $bestId;
     }
 
 }
