@@ -131,7 +131,7 @@ class AssetModel
             //cobie
             'c_auto_id',
             'c_parent_asset_id',
-            'c_asset_type',
+            //'c_asset_type',
             'c_is_parent',
             'c_parent_name',
             'c_full_asset_name',
@@ -141,7 +141,7 @@ class AssetModel
             'c_parent_code',
             'c_status',
             //manual input by user
-            'c_asset_name',
+            //'c_asset_name',
             'c_asset_code', 
             'c_sub_asset_code',
             'c_sub_asset_name',
@@ -159,6 +159,7 @@ class AssetModel
             'c_matched_level3_id',
             'c_matched_level4_id',
             'c_keywords',
+            'c_level', //excluded for updating level in INT/Numbers
         ];
 
         if ($type === 'cobie') {
@@ -606,6 +607,21 @@ class AssetModel
 
         // Prepare + bind
         $stmt = $this->conn->prepare($sql);
+        if (!$stmt)
+        {
+            logMessage(
+                "Prepare failed",
+                "error",
+                [
+                    "error" => $this->conn->error
+                ]
+            );
+
+            return [
+                "status" => "error",
+                "message" => $this->conn->error
+            ];
+        }
 
         $types = '';
         $values = [];
@@ -618,13 +634,67 @@ class AssetModel
             }
         }
 
-        // Bind parameters dynamically
-        $stmt->bind_param($types, ...$values);
+        logMessage(
+            "Bind count",
+            "info",
+            [
+                "types_length" => strlen($types),
+                "values_count" => count($values)
+            ]
+        );
 
-        // Execute inside transaction
-        $this->conn->begin_transaction();
-        $stmt->execute();
-        $this->conn->commit();
+        // Bind parameters dynamically
+        $stmt->bind_param($types, ...$values);        
+        // $this->conn->begin_transaction();
+        // $stmt->execute();
+        $result = $stmt->execute();
+        // $this->conn->commit();
+        try {
+            // Execute inside transaction
+            $this->conn->begin_transaction();
+
+            logMessage(
+                "About to execute insert",
+                "info",
+                [
+                    "rows" => count($filteredRows),
+                    "columns" => count($columns)
+                ]
+            );
+
+            if(!$stmt->execute())
+            {
+                throw new Exception(
+                    $stmt->error
+                );
+            }
+
+            logMessage(
+                "Execute result",
+                "info",
+                [
+                    "success" => $result,
+                    "error" => $stmt->error
+                ]
+            );
+
+            $this->conn->commit();
+
+        }
+        catch(Throwable $e)
+        {
+            $this->conn->rollback();
+
+            logMessage(
+                "Insert failed",
+                "error",
+                [
+                    "message" => $e->getMessage()
+                ]
+            );
+
+            throw $e;
+        }
 
         // Log completion of bulk insert
         logMessage("Bulk insert completed", "info", [
@@ -655,8 +725,6 @@ class AssetModel
 
                 
                 //Determine Parent
-                
-
                 $parentId = null;
 
                 if (!empty($mapping['level4_id'])) {
@@ -682,8 +750,6 @@ class AssetModel
 
                 
                 //Get Parent Item No
-                
-
                 $stmtParent = $this->conn->prepare("
                     SELECT
                         c_item_no,
@@ -725,8 +791,6 @@ class AssetModel
 
                 
                 //Get Last Child Under Parent
-                
-
                 $stmtLastChild = $this->conn->prepare("
                     SELECT c_item_no
                     FROM app_fd_asset_hierarchy
@@ -763,8 +827,6 @@ class AssetModel
 
                 
                 //Generate New Item No
-                
-
                 if (empty($lastItemNo))
                 {
                     $childSequence = 1;
@@ -793,8 +855,6 @@ class AssetModel
 
                 
                 //Generate Level
-                
-
                 $newLevel =
                     substr_count(
                         $newItemNo,
@@ -808,13 +868,12 @@ class AssetModel
                     UPDATE app_fd_asset_hierarchy
                     SET
                         c_item_no = ?,
+                        c_level = ?,
                         c_parent_id = ?,
-
                         c_level1_id = ?,
                         c_level2_id = ?,
                         c_level3_id = ?,
                         c_level4_id = ?,
-
                         c_matched_level1_id = ?,
                         c_matched_level2_id = ?,
                         c_matched_level3_id = ?,
@@ -834,7 +893,6 @@ class AssetModel
                 $level2Id = $mapping['level2_id'] ?? null;
                 $level3Id = $mapping['level3_id'] ?? null;
                 $level4Id = $mapping['level4_id'] ?? null;
-
                 $matchedLevel1 = $level1Id;
                 $matchedLevel2 = $level2Id;
                 $matchedLevel3 = $level3Id;
@@ -842,21 +900,18 @@ class AssetModel
 
                 $stmtUpdate->bind_param(
                     //"sissssss",
-                    "sssssssssss",
+                    "sissssssssss",
                     $newItemNo,
-                    //$newLevel,
+                    $newLevel,
                     $parentId,
-
                     $level1Id,
                     $level2Id,
                     $level3Id,
                     $level4Id,
-
                     $matchedLevel1,
                     $matchedLevel2,
                     $matchedLevel3,
                     $matchedLevel4,
-                    
                     $currentId
                 );
 
