@@ -680,6 +680,14 @@ class AssetModel
 
             $this->conn->commit();
 
+            //sync to general asset table
+            foreach($filteredRows as $row)
+            {
+                $this->syncToGeneralAssetTable(
+                    $row
+                );
+            }
+
         }
         catch(Throwable $e)
         {
@@ -924,6 +932,43 @@ class AssetModel
                 }
 
                 $stmtUpdate->close();
+
+                $stmtGeneral =
+                    $this->conn->prepare("
+                        UPDATE app_fd_general_asset_table
+                        SET
+                            c_item_no = ?,
+                            c_level = ?,
+                            c_parent_id = ?,
+                            c_level1_id = ?,
+                            c_level2_id = ?,
+                            c_level3_id = ?,
+                            c_level4_id = ?,
+                            c_matched_level1_id = ?,
+                            c_matched_level2_id = ?,
+                            c_matched_level3_id = ?,
+                            c_matched_level4_id = ?
+                        WHERE id = ?
+                    ");
+
+                $stmtGeneral->bind_param(
+                    'sissssssssss',
+                    $newItemNo,
+                    $newLevel,
+                    $parentId,
+                    $level1Id,
+                    $level2Id,
+                    $level3Id,
+                    $level4Id,
+                    $matchedLevel1,
+                    $matchedLevel2,
+                    $matchedLevel3,
+                    $matchedLevel4,
+                    $currentId
+                );
+
+                $stmtGeneral->execute();
+                $stmtGeneral->close();
 
                 $updatedRows++;
             }
@@ -1241,6 +1286,78 @@ class AssetModel
         }
 
         return $bestId;
+    }
+
+    private function syncToGeneralAssetTable(array $row)
+    {
+        $table = 'app_fd_general_asset_table';
+
+        $columns = array_keys($row);
+
+        $columnSql =
+            '`' .
+            implode('`,`', $columns) .
+            '`';
+
+        $placeholders =
+            implode(
+                ',',
+                array_fill(
+                    0,
+                    count($columns),
+                    '?'
+                )
+            );
+
+        $updateSql =
+            implode(
+                ',',
+                array_map(
+                    fn($col) =>
+                        "`$col` = VALUES(`$col`)",
+                    $columns
+                )
+            );
+
+        $sql = "
+            INSERT INTO `$table`
+            ($columnSql)
+            VALUES ($placeholders)
+            ON DUPLICATE KEY UPDATE
+            $updateSql
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+
+        $types =
+            str_repeat(
+                's',
+                count($columns)
+            );
+
+        $values = [];
+
+        foreach($columns as $col)
+        {
+            $values[] =
+                $row[$col] ?? null;
+        }
+
+        $stmt->bind_param(
+            $types,
+            ...$values
+        );
+
+       if(!$stmt->execute())
+        {
+            logMessage(
+                "General Asset Sync Failed",
+                "error",
+                [
+                    "error" => $stmt->error
+                ]
+            );
+        }
     }
 
 }
