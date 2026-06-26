@@ -863,16 +863,11 @@ class AssetModel
 
                 
                 //Generate Level
-                // $newLevel =
-                //     substr_count(
-                //         $newItemNo,
-                //         '.'
-                //     ) + 1;
                 $newLevel =
                     substr_count(
                         $newItemNo,
                         '.'
-                    );
+                    ) + 1;
 
                 
                 //Update
