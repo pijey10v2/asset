@@ -154,10 +154,14 @@ class AssetModel
             'c_level2_id',
             'c_level3_id',
             'c_level4_id',
+            'c_level5_id',
+            'c_level6_id',
             'c_matched_level1_id',
             'c_matched_level2_id',
             'c_matched_level3_id',
             'c_matched_level4_id',
+            'c_matched_level5_id',
+            'c_matched_level6_id',
             'c_keywords',
             'c_level', //excluded for updating level in INT/Numbers
         ];
@@ -457,39 +461,6 @@ class AssetModel
                 $row
             );
 
-            // $matched =
-            // $this->autoMatchHierarchy(
-            //     $row,
-            //     $hierarchyKeywords
-            // );
-
-            // if ($matched)
-            // {
-            //     $path =
-            //         $this->buildHierarchyPath(
-            //             $matched,
-            //             $hierarchyLookup
-            //         );
-
-            //     $row['c_matched_level1_id'] =
-            //         $path[1] ?? null;
-
-            //     $row['c_matched_level2_id'] =
-            //         $path[2] ?? null;
-
-            //     $row['c_matched_level3_id'] =
-            //         $path[3] ?? null;
-
-            //     $row['c_matched_level4_id'] =
-            //         $path[4] ?? null;
-            // }
-            // else
-            // {
-            //     $row['c_matched_level1_id'] = null;
-            //     $row['c_matched_level2_id'] = null;
-            //     $row['c_matched_level3_id'] = null;
-            //     $row['c_matched_level4_id'] = null;
-            // }
             $assetText =
                 strtolower(
                     $row['c_keywords']
@@ -521,6 +492,20 @@ class AssetModel
                     $assetText,
                     $hierarchyKeywords,
                     4
+                );
+
+            $row['c_matched_level5_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    5
+                );
+
+            $row['c_matched_level6_id'] =
+                $this->findBestMatchByLevel(
+                    $assetText,
+                    $hierarchyKeywords,
+                    6
                 );
 
             // Check for required fields
@@ -734,8 +719,15 @@ class AssetModel
                 
                 //Determine Parent
                 $parentId = null;
+                if (!empty($mapping['level6_id'])) {
 
-                if (!empty($mapping['level4_id'])) {
+                    $parentId = $mapping['level6_id'];
+
+                } else if (!empty($mapping['level5_id'])) {
+
+                    $parentId = $mapping['level5_id'];
+
+                } else if (!empty($mapping['level4_id'])) {
 
                     $parentId = $mapping['level4_id'];
 
@@ -882,10 +874,14 @@ class AssetModel
                         c_level2_id = ?,
                         c_level3_id = ?,
                         c_level4_id = ?,
+                        c_level5_id = ?,
+                        c_level6_id = ?,
                         c_matched_level1_id = ?,
                         c_matched_level2_id = ?,
                         c_matched_level3_id = ?,
-                        c_matched_level4_id = ?
+                        c_matched_level4_id = ?,
+                        c_matched_level5_id = ?,
+                        c_matched_level6_id = ?
                     WHERE id = ?
                 ");
 
@@ -901,14 +897,18 @@ class AssetModel
                 $level2Id = $mapping['level2_id'] ?? null;
                 $level3Id = $mapping['level3_id'] ?? null;
                 $level4Id = $mapping['level4_id'] ?? null;
+                $level5Id = $mapping['level5_id'] ?? null;
+                $level6Id = $mapping['level6_id'] ?? null;
                 $matchedLevel1 = $level1Id;
                 $matchedLevel2 = $level2Id;
                 $matchedLevel3 = $level3Id;
                 $matchedLevel4 = $level4Id;
+                $matchedLevel5 = $level5Id;
+                $matchedLevel6 = $level6Id;
 
                 $stmtUpdate->bind_param(
                     //"sissssss",
-                    "sissssssssss",
+                    "sissssssssssssss",
                     $newItemNo,
                     $newLevel,
                     $parentId,
@@ -916,10 +916,14 @@ class AssetModel
                     $level2Id,
                     $level3Id,
                     $level4Id,
+                    $level5Id,
+                    $level6Id,
                     $matchedLevel1,
                     $matchedLevel2,
                     $matchedLevel3,
                     $matchedLevel4,
+                    $matchedLevel5,
+                    $matchedLevel6,
                     $currentId
                 );
 
@@ -944,15 +948,19 @@ class AssetModel
                             c_level2_id = ?,
                             c_level3_id = ?,
                             c_level4_id = ?,
+                            c_level5_id = ?,
+                            c_level6_id = ?,
                             c_matched_level1_id = ?,
                             c_matched_level2_id = ?,
                             c_matched_level3_id = ?,
-                            c_matched_level4_id = ?
+                            c_matched_level4_id = ?,
+                            c_matched_level5_id = ?,
+                            c_matched_level6_id = ?
                         WHERE id = ?
                     ");
 
                 $stmtGeneral->bind_param(
-                    'sissssssssss',
+                    "sissssssssssssss",
                     $newItemNo,
                     $newLevel,
                     $parentId,
@@ -960,10 +968,14 @@ class AssetModel
                     $level2Id,
                     $level3Id,
                     $level4Id,
+                    $level5Id,
+                    $level6Id,
                     $matchedLevel1,
                     $matchedLevel2,
                     $matchedLevel3,
                     $matchedLevel4,
+                    $matchedLevel5,
+                    $matchedLevel6,
                     $currentId
                 );
 
@@ -1139,11 +1151,15 @@ class AssetModel
             'c_matched_level2_id',
             'c_matched_level3_id',
             'c_matched_level4_id',
+            'c_matched_level5_id',
+            'c_matched_level6_id',
 
             'c_level1_id',
             'c_level2_id',
             'c_level3_id',
-            'c_level4_id'
+            'c_level4_id',
+            'c_level5_id',
+            'c_level6_id'
         ];
 
         foreach($row as $column => $value)
